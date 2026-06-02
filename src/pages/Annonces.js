@@ -75,7 +75,9 @@ export default function Annonces() {
             {list.map(a => (
               <div key={a.id} className="ann-card" onClick={() => navigate(`/annonces/${a.id}`)}>
                 <div className="ai">
-                  <span style={{ fontSize: 52 }}>{EMOJI[a.categorie] || '🔫'}</span>
+                  {a.images && a.images.length > 0
+                    ? <img src={a.images[0]} alt={a.titre} />
+                    : <span style={{ fontSize: 52 }}>{EMOJI[a.categorie] || '🔫'}</span>}
                   <button className={`fav-btn`} onClick={e => { e.stopPropagation(); toggleFav(a.id) }}>
                     <i className={`ti ti-heart`} style={{ fontSize: 13, color: 'var(--text3)' }}></i>
                   </button>

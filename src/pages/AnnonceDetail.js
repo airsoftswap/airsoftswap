@@ -22,7 +22,7 @@ export default function AnnonceDetail() {
 
   const load = async () => {
     const { data } = await supabase.from('annonces')
-      .select('*, profiles(id,username,note_moyenne,nb_ventes,taux_expedition,temps_reponse,created_at,ville)')
+      .select('*, profiles(id,username,note_moyenne,nb_ventes,created_at,ville)')
       .eq('id', id).single()
     setAnn(data); setLoading(false)
   }

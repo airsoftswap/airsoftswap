@@ -87,7 +87,7 @@ export default function Profil() {
           ? <div className="empty"><i className="ti ti-mood-empty"></i><p>Aucune annonce.</p></div>
           : <div className="ann-grid">{annonces.map(a=>(
               <div key={a.id} className="ann-card" onClick={()=>navigate(`/annonces/${a.id}`)}>
-                <div className="ai"><span style={{fontSize:46}}>{EMOJI[a.categorie]||'🔫'}</span></div>
+                <div className="ai">{a.images && a.images.length > 0 ? <img src={a.images[0]} alt={a.titre} /> : <span style={{fontSize:46}}>{EMOJI[a.categorie]||'🔫'}</span>}</div>
                 <div className="ab"><div className="at">{a.titre}</div><div className="ap">{Number(a.prix).toFixed(2)} €</div><div className="al"><i className="ti ti-map-pin" style={{fontSize:11}}></i>{a.ville}</div></div>
               </div>
             ))}</div>

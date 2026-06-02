@@ -48,7 +48,7 @@ function AuthModal({ onClose }) {
       const { data, error } = await supabase.auth.signUp({ email: f.email, password: f.password })
       if (error) { setErr(error.message); setLoading(false); return }
       if (data.user) {
-        await supabase.from('profiles').upsert({ id: data.user.id, username: f.username.trim(), nb_ventes: 0, nb_achats: 0, note_moyenne: 0, taux_expedition: 100 })
+        await supabase.from('profiles').upsert({ id: data.user.id, username: f.username.trim(), nb_ventes: 0, nb_achats: 0, note_moyenne: 0 })
         showToast('ok', 'Compte créé ! Vérifiez votre email.')
         onClose()
       }

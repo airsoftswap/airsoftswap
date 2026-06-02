@@ -50,7 +50,9 @@ function AnnCard({ a, navigate, favs, toggleFav }) {
   return (
     <div className="ann-card" onClick={() => navigate(`/annonces/${a.id}`)}>
       <div className="ai">
-        <span style={{ fontSize: 52 }}>{EMOJI[a.categorie] || '🔫'}</span>
+        {a.images && a.images.length > 0
+          ? <img src={a.images[0]} alt={a.titre} />
+          : <span style={{ fontSize: 52 }}>{EMOJI[a.categorie] || '🔫'}</span>}
         <button className={`fav-btn ${isFav ? 'on' : ''}`} onClick={e => { e.stopPropagation(); toggleFav(a.id) }}>
           <i className={`ti ${isFav ? 'ti-heart-filled' : 'ti-heart'}`} style={{ fontSize: 13, color: isFav ? 'var(--red)' : 'var(--text3)' }}></i>
         </button>
