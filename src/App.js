@@ -7,7 +7,7 @@ import AnnonceDetail from './pages/AnnonceDetail'
 import Publier from './pages/Publier'
 import Profil from './pages/Profil'
 import Messagerie from './pages/Messagerie'
-import ChatLive from './pages/ChatLive'
+import PageLegale from './pages/PageLegale'
 import Admin from './pages/Admin'
 
 export const AppCtx = createContext(null)
@@ -102,7 +102,7 @@ function DonModal() {
     <>
       <button onClick={() => setOpen(true)}
         style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: 'rgba(255,94,94,.1)', border: '1px solid rgba(255,94,94,.25)', borderRadius: 8, fontSize: 12, fontWeight: 700, color: '#FF5E5E', fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: '.5px', textTransform: 'uppercase', transition: 'all .2s', whiteSpace: 'nowrap', cursor: 'pointer' }}>
-        ☕ Soutenir
+        Soutenir
       </button>
       {open && (
         <div className="overlay show" onClick={() => setOpen(false)}>
@@ -191,7 +191,6 @@ function Navbar({ onAuth }) {
       </div>
       <div className="nav-links">
         <button className={`nav-link ${on('/annonces') ? 'on' : ''}`} onClick={() => navigate('/annonces')}>Annonces</button>
-        <button className={`nav-link ${on('/chat') ? 'on' : ''}`} onClick={() => navigate('/chat')}>🔴 LIVE Chat</button>
         {user && (
           <button className={`nav-link ${on('/messagerie') ? 'on' : ''}`} onClick={() => navigate('/messagerie')}>
             Messages {unread > 0 && <span style={{ background: 'var(--red)', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 10, padding: '1px 5px', marginLeft: 4 }}>{unread}</span>}
@@ -227,7 +226,6 @@ function Footer() {
         <div className="footer-col">
           <h4>Navigation</h4>
           <a onClick={() => navigate('/annonces')}>Annonces</a>
-          <a onClick={() => navigate('/chat')}>Communauté</a>
           <a onClick={() => navigate('/annonces?cat=AEG')}>AEG</a>
           <a onClick={() => navigate('/annonces?cat=GBB')}>GBB / GAZ</a>
         </div>
@@ -310,7 +308,6 @@ export default function App() {
           <Route path="/publier" element={<Publier />} />
           <Route path="/profil/:id" element={<Profil />} />
           <Route path="/messagerie" element={<Messagerie />} />
-          <Route path="/chat" element={<ChatLive />} />
           <Route path="/legal/:slug" element={<PageLegale />} />
                 <Route path="/admin" element={<Admin />} />
         </Routes>

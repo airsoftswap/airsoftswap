@@ -187,41 +187,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* LIVE CHAT BAR - Modèle A */}
-      <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
-        {/* Header */}
-        <div style={{ padding: '10px 20px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid var(--border)', background: 'var(--bg3)' }}>
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--g)', boxShadow: '0 0 6px var(--g)', animation: 'glow 2s infinite', flexShrink: 0 }}></div>
-          <span style={{ fontFamily: 'var(--fh)', fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.5px', color: 'var(--text)' }}>Live Chat</span>
-          <span style={{ fontSize: 11, color: 'var(--text3)', marginLeft: 4 }}>— #général</span>
-          <button onClick={() => navigate('/chat')} style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--g)', cursor: 'pointer', background: 'none', border: 'none', fontFamily: 'var(--fh)', textTransform: 'uppercase', letterSpacing: '.5px', fontWeight: 700 }}>
-            Rejoindre →
-          </button>
-        </div>
-        {/* Messages aperçu */}
-        <div style={{ display: 'flex', overflow: 'hidden' }}>
-          {[
-            { u: 'Tactical31', t: 'Je viens de poster une VSR-10 upgradée !' },
-            { u: 'Max_92', t: 'Quelqu\'un cherche un AEG à Lyon ?' },
-            { u: 'SnipFR', t: 'Le terrain de Décines est top 🎯' },
-            { u: 'AirsoftPro', t: 'Vous connaissez des terrains à Bordeaux ?' },
-          ].map((m, i) => (
-            <div key={i} style={{ flexShrink: 0, padding: '10px 16px', borderRight: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 9, minWidth: 240, cursor: 'pointer', transition: 'background .15s' }}
-              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg3)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-              <div onClick={() => setPopupUser({ username: m.u, nb_ventes: 3, nb_annonces: 8, note_moyenne: 4.5, nb_avis: 12, anciennete: '6 mois' })}
-                style={{ width: 26, height: 26, borderRadius: 5, background: 'var(--bg3)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: 'var(--g)', flexShrink: 0, fontFamily: 'var(--fh)', cursor: 'pointer' }}>
-                {m.u.slice(0, 2).toUpperCase()}
-              </div>
-              <div style={{ minWidth: 0 }} onClick={() => navigate('/chat')}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--g)' }}>{m.u}</div>
-                <div style={{ fontSize: 12, color: 'var(--text2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 160 }}>{m.t}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* STATS */}
       <div className="stats-bar">
         {[

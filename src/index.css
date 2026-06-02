@@ -281,6 +281,25 @@ a{color:inherit;text-decoration:none}
 .atab{flex:1;padding:11px;font-size:13px;font-weight:700;color:var(--text3);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.5px;transition:all .15s}
 .atab.on{color:var(--g);border-bottom-color:var(--g)}
 
+/* ---- Fenetre Connexion / Inscription ---- */
+.auth-tabs{gap:10px}
+.auth-tab{flex:1;padding:12px 10px;font-size:14px;font-weight:700;color:var(--text3);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.5px;transition:all .15s}
+.auth-tab:hover{color:var(--text2)}
+.auth-tab.on{color:var(--g);border-bottom-color:var(--g)}
+.form-group{margin-bottom:18px}
+.form-group label{display:block;font-size:12px;font-weight:700;letter-spacing:.8px;color:var(--text3);text-transform:uppercase;margin-bottom:7px;font-family:'Barlow Condensed',sans-serif}
+.form-group input,.form-group select,.form-group textarea{width:100%;background:var(--input-bg);border:1px solid var(--border2);border-radius:8px;padding:13px 15px;font-size:15px;color:var(--text);outline:none;transition:border-color .2s}
+.form-group input::placeholder{color:var(--text3)}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--g)}
+.btn{cursor:pointer;border:none;font-family:'Barlow Condensed',sans-serif}
+.btn-acc{background:var(--g);color:#fff;border-radius:8px;font-size:15px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:14px;transition:background .2s}
+.btn-acc:hover{background:var(--g2)}
+.btn-acc:disabled{opacity:.6;cursor:not-allowed}
+.btn-block{width:100%;display:block;margin-top:4px}
+.alert{display:flex;align-items:center;gap:8px;padding:10px 13px;border-radius:8px;font-size:13px;margin-bottom:16px}
+.alert-err{background:rgba(217,64,64,.1);color:var(--red);border:1px solid rgba(217,64,64,.25)}
+.alert-warn{background:var(--gs);color:var(--text2);border:1px solid var(--gg)}
+
 /* ============ FOOTER ============ */
 footer{background:var(--bg2);border-top:1px solid var(--border);padding:40px 60px 24px}
 .footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:36px;margin-bottom:32px}
