@@ -17,6 +17,8 @@ export default function AnnonceDetail() {
   const [sending, setSending] = useState(false)
   const [showSignal, setShowSignal] = useState(false)
   const [activePhoto, setActivePhoto] = useState(0)
+  const [tx, setTx] = useState(null)
+  const [txLoading, setTxLoading] = useState(false)
 
   useEffect(() => { load() }, [id])
 
@@ -25,6 +27,19 @@ export default function AnnonceDetail() {
       .select('*, profiles(id,username,note_moyenne,nb_ventes,created_at,ville)')
       .eq('id', id).single()
     setAnn(data); setLoading(false)
+    if (user && data && user.id !== data.user_id) {
+      const { data: t } = await supabase.from('transactions').select('*').eq('annonce_id', data.id).eq('buyer_id', user.id).maybeSingle()
+      setTx(t || null)
+    }
+  }
+
+  const confirmTx = async () => {
+    if (!user) { setShowAuth(true); return }
+    setTxLoading(true)
+    const { error } = await supabase.rpc('confirm_transaction', { p_annonce: ann.id, p_other: ann.user_id })
+    if (error) showToast('err', 'Erreur : '+error.message)
+    else { showToast('ok', "C'est noté !"); await load() }
+    setTxLoading(false)
   }
 
   const sendMsg = async () => {
@@ -173,6 +188,33 @@ export default function AnnonceDetail() {
               Voir le profil complet
             </button>
           </div>
+
+          {/* TRANSACTION */}
+          {!isOwner && user && (
+            <div style={{ background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:10,padding:18,marginBottom:16 }}>
+              <div style={{ fontFamily:'var(--fh)',fontSize:14,fontWeight:600,marginBottom:12,display:'flex',alignItems:'center',gap:7,color:'var(--text)' }}>
+                <i className="ti ti-shopping-bag" style={{ color:'var(--g)' }}></i>Transaction
+              </div>
+              {tx?.status === 'confirmed' ? (
+                <div style={{ textAlign:'center' }}>
+                  <div style={{ color:'var(--g)',fontSize:13,fontWeight:600,marginBottom:10,display:'flex',alignItems:'center',justifyContent:'center',gap:6 }}><i className="ti ti-circle-check"></i> Transaction confirmée</div>
+                  <button className="btn btn-acc btn-block" onClick={() => navigate(`/profil/${ann.user_id}`)}>Laisser un avis au vendeur</button>
+                </div>
+              ) : tx?.buyer_confirmed ? (
+                <div style={{ fontSize:13,color:'var(--text2)',display:'flex',alignItems:'center',gap:7 }}>
+                  <i className="ti ti-clock" style={{ color:'var(--amber)' }}></i>En attente de la confirmation du vendeur.
+                </div>
+              ) : (
+                <>
+                  {tx?.seller_confirmed && <div style={{ fontSize:12,color:'var(--text3)',marginBottom:10 }}>Le vendeur a marqué cette vente. Confirmez de votre côté pour la valider.</div>}
+                  <button className="btn btn-acc btn-block" onClick={confirmTx} disabled={txLoading}>
+                    <i className="ti ti-check"></i>{tx?.seller_confirmed ? 'Confirmer mon achat' : "J'ai acheté cet article"}
+                  </button>
+                  <div style={{ fontSize:11,color:'var(--text3)',marginTop:8,textAlign:'center' }}>La vente est validée quand vous et le vendeur confirmez tous les deux.</div>
+                </>
+              )}
+            </div>
+          )}
 
           {/* CONTACT */}
           {!isOwner && (

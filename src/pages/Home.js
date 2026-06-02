@@ -5,6 +5,15 @@ import { useApp } from '../App'
 
 const ETAT = { 'Neuf': 'b-neuf', 'Très bon état': 'b-tbe', 'Bon état': 'b-be', 'État correct': 'b-ec' }
 const EMOJI = { AEG: '🔫', GBB: '🔫', Sniper: '🎯', Équipement: '🦺', Accessoire: '🔭', Pièces: '⚙️' }
+const CAT_ICON = {
+  Tout: (<svg viewBox="0 0 48 48" width="44" height="44"><circle cx="24" cy="24" r="20" fill="#D94040"/><circle cx="24" cy="24" r="14" fill="#EAF0E0"/><circle cx="24" cy="24" r="8" fill="#C8962A"/><circle cx="24" cy="24" r="3.5" fill="#6B8C3A"/></svg>),
+  AEG: (<svg viewBox="0 0 80 40" width="64" height="32"><rect x="4" y="16" width="9" height="10" rx="2" fill="#3a4a24"/><rect x="12" y="17" width="48" height="8" rx="2" fill="#7FA040"/><rect x="59" y="18" width="14" height="3.5" rx="1.5" fill="#8a8a8a"/><rect x="71" y="17.5" width="5" height="4.5" rx="1" fill="#C8962A"/><rect x="26" y="24" width="6" height="12" rx="2" fill="#2a3318"/><rect x="42" y="24" width="5" height="9" rx="2" fill="#3a4a24"/></svg>),
+  GBB: (<svg viewBox="0 0 56 46" width="50" height="40"><rect x="8" y="12" width="42" height="9" rx="2" fill="#4A6B8A"/><rect x="4" y="15.5" width="8" height="4" rx="1.5" fill="#8a8a8a"/><rect x="12" y="20" width="11" height="20" rx="2" fill="#2a2a2a"/><rect x="30" y="20" width="4" height="6" rx="1" fill="#C8962A"/></svg>),
+  Sniper: (<svg viewBox="0 0 84 40" width="66" height="32"><rect x="4" y="20" width="10" height="9" rx="2" fill="#3a4a24"/><rect x="12" y="21" width="58" height="6" rx="2" fill="#6B8C3A"/><rect x="68" y="22" width="14" height="3" rx="1.5" fill="#8a8a8a"/><rect x="34" y="9" width="20" height="7" rx="3" fill="#2a2a2a"/><circle cx="36" cy="12.5" r="4" fill="#4A8FBF"/><rect x="41" y="16" width="3" height="6" fill="#2a2a2a"/></svg>),
+  Équipement: (<svg viewBox="0 0 44 46" width="42" height="44"><rect x="13" y="6" width="7" height="9" rx="2" fill="#8a7a4a"/><rect x="24" y="6" width="7" height="9" rx="2" fill="#8a7a4a"/><rect x="9" y="10" width="26" height="32" rx="4" fill="#a08a52"/><rect x="13" y="18" width="18" height="3.5" rx="1" fill="#5a4f2a"/><rect x="13" y="25" width="18" height="3.5" rx="1" fill="#5a4f2a"/><rect x="13" y="32" width="18" height="3.5" rx="1" fill="#5a4f2a"/></svg>),
+  Accessoire: (<svg viewBox="0 0 56 40" width="52" height="36"><rect x="10" y="13" width="34" height="14" rx="4" fill="#2a2a2a"/><circle cx="15" cy="20" r="7" fill="#4A8FBF"/><circle cx="40" cy="20" r="5.5" fill="#D94040"/><rect x="20" y="27" width="4" height="6" fill="#555"/><rect x="32" y="27" width="4" height="6" fill="#555"/></svg>),
+  Pièces: (<svg viewBox="0 0 48 44" width="46" height="42"><g fill="#C8962A"><rect x="15" y="3" width="6" height="30" rx="1"/><rect x="3" y="15" width="30" height="6" rx="1"/><rect transform="rotate(45 18 18)" x="15" y="3" width="6" height="30" rx="1"/><circle cx="18" cy="18" r="11"/></g><circle cx="18" cy="18" r="4.5" fill="#0F1010"/><g fill="#4A8FBF"><rect x="31" y="20" width="4" height="20" rx="1"/><rect x="23" y="28" width="20" height="4" rx="1"/><rect transform="rotate(45 33 30)" x="31" y="20" width="4" height="20" rx="1"/><circle cx="33" cy="30" r="7.5"/></g><circle cx="33" cy="30" r="3" fill="#0F1010"/></svg>),
+}
 const CATS = [
   { name: 'Tout', slug: 'Tout', emoji: '🎯' },
   { name: 'AEG', slug: 'AEG', emoji: '🔫' },
@@ -63,7 +72,7 @@ function AnnCard({ a, navigate, favs, toggleFav }) {
         <div className="ap">{Number(a.prix).toFixed(2)} €</div>
         <div className="al"><i className="ti ti-map-pin" style={{ fontSize: 11 }}></i>{a.ville || 'France'}</div>
         <div className="af">
-          <div className="as"><div className="av">{initials}</div>{a.profiles?.username || 'Anonyme'}</div>
+          <div className="as"><div className="av" style={{ overflow: 'hidden' }}>{a.profiles?.avatar_url ? <img src={a.profiles.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}</div>{a.profiles?.username || 'Anonyme'}</div>
           {a.profiles?.note_moyenne > 0 && <div className="ar">★ {Number(a.profiles.note_moyenne).toFixed(1)}</div>}
         </div>
       </div>
@@ -137,7 +146,7 @@ export default function Home() {
 
   const load = async () => {
     const [{ data: ann }, { count: ac }, { count: mc }, venteRes] = await Promise.all([
-      supabase.from('annonces').select('*, profiles(username, note_moyenne)').order('created_at', { ascending: false }).limit(8),
+      supabase.from('annonces').select('*, profiles(username, note_moyenne, avatar_url)').order('created_at', { ascending: false }).limit(8),
       supabase.from('annonces').select('*', { count: 'exact', head: true }),
       supabase.from('profiles').select('*', { count: 'exact', head: true }),
       supabase.from('profiles').select('nb_ventes'),
@@ -218,7 +227,7 @@ export default function Home() {
               onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--g)'; e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,.4)' }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none' }}>
               <div style={{ height: 90, background: 'var(--bg3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 42, position: 'relative' }}>
-                {cat.emoji}
+                {CAT_ICON[cat.slug] || cat.emoji}
                 <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, var(--g), transparent)' }}></div>
               </div>
               <div style={{ padding: '10px 8px' }}>
