@@ -62,11 +62,11 @@ export default function Publier() {
   const addPhotos = async (e) => {
     const files = Array.from(e.target.files)
     if (photos.length + files.length > MAX_PHOTOS) {
-      showToast('Maximum 3 photos par annonce', 'err'); return
+      showToast('err', 'Maximum 3 photos par annonce'); return
     }
     const newPhotos = []
     for (const file of files) {
-      if (file.size > MAX_SIZE) { showToast(`${file.name} est trop lourd (max 5MB)`, 'err'); continue }
+      if (file.size > MAX_SIZE) { showToast('err', `${file.name} est trop lourd (max 5MB)`); continue }
       const preview = URL.createObjectURL(file)
       const compressed = await compressImage(file)
       newPhotos.push({ file, preview, compressed })
@@ -92,35 +92,40 @@ export default function Publier() {
     if (rem <= 0) { setErr('Quota atteint : 3 annonces maximum par 24 heures.'); return }
     setLoading(true)
 
-    // Upload photos
-    const photoUrls = []
-    for (let i = 0; i < photos.length; i++) {
-      const { compressed } = photos[i]
-      const fileName = `${user.id}/${Date.now()}_${i}.jpg`
-      const { data, error } = await supabase.storage.from('annonces-photos').upload(fileName, compressed, { contentType: 'image/jpeg', upsert: true })
-      if (error) { showToast('Erreur upload photo', 'err'); setLoading(false); return }
-      const { data: { publicUrl } } = supabase.storage.from('annonces-photos').getPublicUrl(fileName)
-      photoUrls.push(publicUrl)
+    try {
+      // Upload photos
+      const photoUrls = []
+      for (let i = 0; i < photos.length; i++) {
+        const { compressed } = photos[i]
+        const fileName = `${user.id}/${Date.now()}_${i}.jpg`
+        const { error } = await supabase.storage.from('annonces-photos').upload(fileName, compressed, { contentType: 'image/jpeg', upsert: true })
+        if (error) { setErr(`Erreur upload photo : ${error.message}`); showToast('err', 'Erreur upload photo'); setLoading(false); return }
+        const { data: { publicUrl } } = supabase.storage.from('annonces-photos').getPublicUrl(fileName)
+        photoUrls.push(publicUrl)
+      }
+
+      // Insert annonce
+      const { data, error } = await supabase.from('annonces').insert({
+        user_id: user.id,
+        titre: f.titre.trim(),
+        categorie: f.categorie,
+        etat: f.etat,
+        prix: parseFloat(f.prix),
+        ville: f.ville.trim(),
+        description: f.description.trim(),
+        boosted: false,
+        images: photoUrls,
+      }).select().single()
+
+      if (error) { setErr(`Erreur lors de la publication : ${error.message}`); setLoading(false); return }
+      const nc = quota.count + 1; saveQ(nc); setQuota({ count: nc, date: new Date().toDateString() })
+      showToast('ok', '✅ Annonce publiée !')
+      navigate(`/annonces/${data.id}`)
+    } catch (e) {
+      setErr(`Erreur inattendue : ${e.message || e}`)
+    } finally {
+      setLoading(false)
     }
-
-    // Insert annonce
-    const { data, error } = await supabase.from('annonces').insert({
-      user_id: user.id,
-      titre: f.titre.trim(),
-      categorie: f.categorie,
-      etat: f.etat,
-      prix: parseFloat(f.prix),
-      ville: f.ville.trim(),
-      description: f.description.trim(),
-      boosted: false,
-      images: photoUrls,
-    }).select().single()
-
-    if (error) { setErr('Erreur lors de la publication.'); setLoading(false); return }
-    const nc = quota.count + 1; saveQ(nc); setQuota({ count: nc, date: new Date().toDateString() })
-    showToast('✅ Annonce publiée !', 'ok')
-    navigate(`/annonces/${data.id}`)
-    setLoading(false)
   }
 
   if (!user) return null
@@ -142,7 +147,7 @@ export default function Publier() {
             </div>
             <button onClick={async () => {
               await supabase.auth.resend({ type: 'signup', email: user.email })
-              showToast('Email de confirmation renvoyé !', 'ok')
+              showToast('ok', 'Email de confirmation renvoyé !')
             }} style={{ marginTop: 10, padding: '7px 14px', background: 'transparent', border: '1px solid var(--red)', borderRadius: 7, fontSize: 12, color: 'var(--red)', cursor: 'pointer' }}>
               Renvoyer l'email de confirmation
             </button>
