@@ -98,7 +98,7 @@ export default function Publier() {
       for (let i = 0; i < photos.length; i++) {
         const { compressed } = photos[i]
         const fileName = `${user.id}/${Date.now()}_${i}.jpg`
-        const { error } = await supabase.storage.from('annonces-photos').upload(fileName, compressed, { contentType: 'image/jpeg', upsert: true })
+        const { error } = await supabase.storage.from('annonces-photos').upload(fileName, compressed, { contentType: 'image/jpeg', upsert: false })
         if (error) { setErr(`Erreur upload photo : ${error.message}`); showToast('err', 'Erreur upload photo'); setLoading(false); return }
         const { data: { publicUrl } } = supabase.storage.from('annonces-photos').getPublicUrl(fileName)
         photoUrls.push(publicUrl)
