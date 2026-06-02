@@ -254,6 +254,7 @@ function Footer() {
 export default function App() {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
+  const [authReady, setAuthReady] = useState(false)
   const [showAuth, setShowAuth] = useState(false)
   const [toast, setToast] = useState(null)
   const [favs, setFavs] = useState(() => { try { return JSON.parse(localStorage.getItem('as_favs') || '[]') } catch { return [] } })
@@ -275,6 +276,7 @@ export default function App() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
       if (session?.user) loadProfile(session.user.id)
+      setAuthReady(true)
     })
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       setUser(session?.user ?? null)
@@ -293,6 +295,10 @@ export default function App() {
     await supabase.auth.signOut()
     setUser(null); setProfile(null)
     showToast('info', 'Déconnecté.')
+  }
+
+  if (!authReady) {
+    return <div className="loader"><div className="spin"></div></div>
   }
 
   return (

@@ -262,7 +262,7 @@ export default function Publier() {
         </div>
 
         <button type="submit" disabled={loading || rem <= 0 || !emailVerified || !captchaDone || !acceptAge || !acceptRules}
-          style={{ width: '100%', padding: 14, background: loading || rem <= 0 || !emailVerified || !captchaDone ? 'var(--border2)' : 'var(--g)', color: '#fff', border: 'none', borderRadius: 8, fontFamily: 'var(--fh)', fontSize: 16, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.5px', cursor: loading || rem <= 0 || !emailVerified || !captchaDone ? 'not-allowed' : 'pointer', transition: 'background .2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          style={{ width: '100%', padding: 14, background: loading || rem <= 0 || !emailVerified || !captchaDone || !acceptAge || !acceptRules ? 'var(--border2)' : 'var(--g)', color: '#fff', border: 'none', borderRadius: 8, fontFamily: 'var(--fh)', fontSize: 16, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.5px', cursor: loading || rem <= 0 || !emailVerified || !captchaDone || !acceptAge || !acceptRules ? 'not-allowed' : 'pointer', transition: 'background .2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
           {loading ? 'Publication en cours...' : '🚀 Publier l\'annonce'}
         </button>
       </form>
