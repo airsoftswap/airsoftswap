@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /profil/
+Disallow: /messagerie/
+Disallow: /publier/
+Disallow: /admin/
+
+Sitemap: https://www.airsoftswap.fr/sitemap.xml
