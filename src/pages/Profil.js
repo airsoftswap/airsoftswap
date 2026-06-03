@@ -14,7 +14,7 @@ export default function Profil() {
   const [uploadingAv, setUploadingAv] = useState(false)
   const fileAvRef = useRef(null)
   const isMe = user?.id === id
-  useEffect(() => { load() }, [id])
+  useEffect(() => { load() }, [id, user])
   const load = async () => {
     const [{ data:p },{ data:a },{ data:av }] = await Promise.all([
       supabase.from('profiles').select('*').eq('id',id).single(),
@@ -110,8 +110,9 @@ export default function Profil() {
               </React.Fragment>
             ))}
           </div>
-          <div style={{display:'flex',gap:8,justifyContent:'center',marginTop:16}}>
-            {!isMe && user && <button className="btn btn-out" style={{fontSize:12,padding:'8px 16px'}} onClick={()=>setShowAvisModal(true)}><i className="ti ti-star"></i> Laisser un avis</button>}
+          <div style={{display:'flex',gap:8,justifyContent:'center',alignItems:'center',flexWrap:'wrap',marginTop:16}}>
+            {!isMe && user && canAvis && <button className="btn btn-out" style={{fontSize:12,padding:'8px 16px'}} onClick={()=>setShowAvisModal(true)}><i className="ti ti-star"></i> Laisser un avis</button>}
+            {!isMe && user && !canAvis && <span style={{fontSize:11,color:'var(--text3)',display:'flex',alignItems:'center',gap:5}}><i className="ti ti-lock" style={{fontSize:12}}></i> Avis possible après une transaction confirmée</span>}
             {isMe && <button className="btn btn-out" style={{fontSize:12,padding:'8px 16px'}} onClick={logout}><i className="ti ti-logout"></i> Déconnexion</button>}
           </div>
         </div>
@@ -125,7 +126,7 @@ export default function Profil() {
           ? <div className="empty"><i className="ti ti-mood-empty"></i><p>Aucune annonce.</p></div>
           : <div className="ann-grid">{annonces.map(a=>(
               <div key={a.id} className="ann-card" onClick={()=>navigate(`/annonces/${a.id}`)}>
-                <div className="ai">{a.images && a.images.length > 0 ? <img src={a.images[0]} alt={a.titre} /> : <span style={{fontSize:46}}>{EMOJI[a.categorie]||'🔫'}</span>}</div>
+                <div className="ai">{a.images && a.images.length > 0 ? <img src={a.images[0]} alt={a.titre} /> : <span style={{fontSize:46}}>{EMOJI[a.categorie]||'🔫'}</span>}{a.sold_at && <span style={{ position:'absolute',top:8,left:8,background:'var(--red)',color:'#fff',fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:11,letterSpacing:1,padding:'3px 9px',borderRadius:5,textTransform:'uppercase',zIndex:2,boxShadow:'0 2px 6px rgba(0,0,0,.4)' }}>Vendu</span>}</div>
                 <div className="ab"><div className="at">{a.titre}</div><div className="ap">{Number(a.prix).toFixed(2)} €</div><div className="al"><i className="ti ti-map-pin" style={{fontSize:11}}></i>{a.ville}</div></div>
               </div>
             ))}</div>

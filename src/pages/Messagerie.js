@@ -8,13 +8,15 @@ export default function Messagerie() {
   const [msgs, setMsgs] = useState([]); const [txt, setTxt] = useState('')
   const [loading, setLoading] = useState(true); const bottomRef = useRef(null)
   const [txInfo, setTxInfo] = useState(null)
+  const [convAnn, setConvAnn] = useState(null)
   useEffect(() => { if (!user) { setShowAuth(true); navigate('/') } }, [user])
   useEffect(() => { if (user) loadConvs() }, [user])
   useEffect(() => { if (active) loadMsgs(active) }, [active])
   useEffect(() => { if (active) loadTx(active) }, [active])
   useEffect(() => { bottomRef.current?.scrollIntoView({behavior:'smooth'}) }, [msgs])
   const loadTx = async conv => {
-    const { data: a } = await supabase.from('annonces').select('user_id').eq('id', conv.annonce_id).maybeSingle()
+    const { data: a } = await supabase.from('annonces').select('id,user_id,titre,prix,images').eq('id', conv.annonce_id).maybeSingle()
+    setConvAnn(a || null)
     const seller = a?.user_id
     if (!seller || (seller !== user.id && seller !== conv.otherId)) { setTxInfo(null); return }
     const buyer = seller === user.id ? conv.otherId : user.id
@@ -22,9 +24,14 @@ export default function Messagerie() {
     setTxInfo({ amSeller: seller === user.id, tx: t || null })
   }
   const confirmTxMsg = async () => {
+    const amSeller = txInfo?.amSeller
     const { error } = await supabase.rpc('confirm_transaction', { p_annonce: active.annonce_id, p_other: active.otherId })
-    if (error) showToast('err', 'Erreur : '+error.message)
-    else { showToast('ok', "C'est noté !"); loadTx(active) }
+    if (error) { showToast('err', 'Erreur : ' + error.message); return }
+    const buyer = amSeller ? active.otherId : user.id
+    const { data: t } = await supabase.from('transactions').select('status').eq('annonce_id', active.annonce_id).eq('buyer_id', buyer).maybeSingle()
+    if (t?.status === 'confirmed' && amSeller) showToast('ok', "🎉 Bravo, c'est vendu ! Pensez à supprimer votre annonce (sinon retrait auto dans 24h).")
+    else showToast('ok', "C'est noté !")
+    loadTx(active)
   }
   const loadConvs = async () => {
     const { data } = await supabase.from('messages').select('*,annonce:annonce_id(titre),sender:sender_id(username),receiver:receiver_id(username)').or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`).order('created_at',{ascending:false})
@@ -85,6 +92,21 @@ export default function Messagerie() {
                   return <button className="btn btn-out" style={{fontSize:11,padding:'6px 10px',whiteSpace:'nowrap'}} onClick={confirmTxMsg}><i className="ti ti-check"></i> {txInfo.amSeller ? 'Confirmer la vente' : "J'ai acheté"}</button>
                 })()}
               </div>
+              {convAnn && (
+                <div onClick={() => navigate(`/annonces/${convAnn.id}`)}
+                  style={{display:'flex',alignItems:'center',gap:10,padding:'9px 14px',background:'var(--bg3)',borderBottom:'1px solid var(--border)',cursor:'pointer'}}
+                  title="Voir l'annonce">
+                  <div style={{width:38,height:38,borderRadius:7,overflow:'hidden',background:'var(--bg4)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                    {convAnn.images && convAnn.images.length>0 ? <img src={convAnn.images[0]} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} /> : <i className="ti ti-package" style={{fontSize:18,color:'var(--text3)'}}></i>}
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:12,color:'var(--text3)',marginBottom:1}}>Annonce concernée</div>
+                    <div style={{fontSize:13,fontWeight:600,color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{convAnn.titre}</div>
+                  </div>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:800,color:'var(--g)',flexShrink:0}}>{Number(convAnn.prix).toFixed(0)} €</div>
+                  <i className="ti ti-chevron-right" style={{color:'var(--text3)',fontSize:16,flexShrink:0}}></i>
+                </div>
+              )}
               <div className="bubbles">
                 {msgs.map(m=>(
                   <div key={m.id} style={{display:'flex',justifyContent:m.sender_id===user.id?'flex-end':'flex-start'}}>

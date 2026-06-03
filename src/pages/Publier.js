@@ -6,14 +6,16 @@ import { useApp } from '../App'
 const MAX = 3
 const MAX_PHOTOS = 3
 const MAX_SIZE = 5 * 1024 * 1024 // 5MB
+const WINDOW = 7 * 24 * 60 * 60 * 1000 // 7 jours glissants
 
-function getQ() {
+function getStamps() {
   try {
-    const d = JSON.parse(localStorage.getItem('asq') || '{}')
-    return d.date === new Date().toDateString() ? d : { count: 0, date: new Date().toDateString() }
-  } catch { return { count: 0, date: new Date().toDateString() } }
+    const arr = JSON.parse(localStorage.getItem('asq_week') || '[]')
+    const now = Date.now()
+    return Array.isArray(arr) ? arr.filter(t => typeof t === 'number' && now - t < WINDOW) : []
+  } catch { return [] }
 }
-function saveQ(n) { localStorage.setItem('asq', JSON.stringify({ count: n, date: new Date().toDateString() })) }
+function saveStamps(arr) { localStorage.setItem('asq_week', JSON.stringify(arr)) }
 
 // Compress image to max 800px wide, 80% quality
 async function compressImage(file) {
@@ -40,15 +42,20 @@ export default function Publier() {
   const [photos, setPhotos] = useState([]) // { file, preview, compressed }
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
-  const [quota, setQuota] = useState(getQ())
+  const [quota, setQuota] = useState(getStamps())
   const [captchaDone, setCaptchaDone] = useState(false)
   const [acceptAge, setAcceptAge] = useState(false)
   const [acceptRules, setAcceptRules] = useState(false)
   const [emailVerified, setEmailVerified] = useState(false)
   const fileRef = useRef(null)
   const isAdmin = user?.id === 'e21bb865-90d4-4995-88f5-1b6bf1a324a1'
-  const rem = isAdmin ? 999 : MAX - quota.count
+  const rem = isAdmin ? 999 : MAX - quota.length
   const pct = Math.round((rem / MAX) * 100)
+  const sorted = [...quota].sort((a, b) => a - b)
+  const nextFree = (!isAdmin && quota.length >= MAX) ? new Date(sorted[quota.length - MAX] + WINDOW) : null
+  const quotaSub = nextFree
+    ? `Prochaine annonce possible le ${nextFree.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} à ${nextFree.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`
+    : '3 annonces sur 7 jours glissants'
 
   useEffect(() => {
     if (!user) { setShowAuth(true); navigate('/') }
@@ -89,7 +96,7 @@ export default function Publier() {
     if (!acceptRules) { setErr('Vous devez accepter les CGU et les règles de la communauté.'); return }
     if (!f.titre.trim() || !f.prix || !f.ville.trim()) { setErr('Titre, prix et ville sont obligatoires.'); return }
     if (parseFloat(f.prix) <= 0) { setErr('Le prix doit être supérieur à 0.'); return }
-    if (rem <= 0) { setErr('Quota atteint : 3 annonces maximum par 24 heures.'); return }
+    if (rem <= 0) { setErr('Quota atteint : 3 annonces maximum par semaine (7 jours glissants).'); return }
     setLoading(true)
 
     try {
@@ -118,7 +125,7 @@ export default function Publier() {
       }).select().single()
 
       if (error) { setErr(`Erreur lors de la publication : ${error.message}`); setLoading(false); return }
-      const nc = quota.count + 1; saveQ(nc); setQuota({ count: nc, date: new Date().toDateString() })
+      const ns = [...quota, Date.now()]; saveStamps(ns); setQuota(ns)
       showToast('ok', '✅ Annonce publiée !')
       navigate(`/annonces/${data.id}`)
     } catch (e) {
@@ -158,11 +165,11 @@ export default function Publier() {
       {/* QUOTA */}
       <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '13px 16px', marginBottom: 18, display: 'flex', alignItems: 'center', gap: 16 }}>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: 'var(--text3)', textTransform: 'uppercase', marginBottom: 7 }}>Quota 24h</div>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, color: 'var(--text3)', textTransform: 'uppercase', marginBottom: 7 }}>Quota hebdomadaire</div>
           <div style={{ height: 4, background: 'var(--bg4)', borderRadius: 2, overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${pct}%`, background: rem > 1 ? 'var(--g)' : rem === 1 ? 'var(--amber)' : 'var(--red)', borderRadius: 2, transition: 'width .3s' }}></div>
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>Réinitialisé à minuit</div>
+          <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>{quotaSub}</div>
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontFamily: 'var(--fh)', fontSize: 22, fontWeight: 800, color: rem > 0 ? 'var(--g)' : 'var(--red)' }}>

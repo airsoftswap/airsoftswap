@@ -1,18 +1,18 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useApp } from '../App'
 
 const ETAT = { 'Neuf': 'b-neuf', 'Très bon état': 'b-tbe', 'Bon état': 'b-be', 'État correct': 'b-ec' }
 const EMOJI = { AEG: '🔫', GBB: '🔫', Sniper: '🎯', Équipement: '🦺', Accessoire: '🔭', Pièces: '⚙️' }
-const CAT_ICON = {
-  Tout: (<svg viewBox="0 0 48 48" width="44" height="44"><circle cx="24" cy="24" r="20" fill="#D94040"/><circle cx="24" cy="24" r="14" fill="#EAF0E0"/><circle cx="24" cy="24" r="8" fill="#C8962A"/><circle cx="24" cy="24" r="3.5" fill="#6B8C3A"/></svg>),
-  AEG: (<svg viewBox="0 0 80 40" width="64" height="32"><rect x="4" y="16" width="9" height="10" rx="2" fill="#3a4a24"/><rect x="12" y="17" width="48" height="8" rx="2" fill="#7FA040"/><rect x="59" y="18" width="14" height="3.5" rx="1.5" fill="#8a8a8a"/><rect x="71" y="17.5" width="5" height="4.5" rx="1" fill="#C8962A"/><rect x="26" y="24" width="6" height="12" rx="2" fill="#2a3318"/><rect x="42" y="24" width="5" height="9" rx="2" fill="#3a4a24"/></svg>),
-  GBB: (<svg viewBox="0 0 56 46" width="50" height="40"><rect x="8" y="12" width="42" height="9" rx="2" fill="#4A6B8A"/><rect x="4" y="15.5" width="8" height="4" rx="1.5" fill="#8a8a8a"/><rect x="12" y="20" width="11" height="20" rx="2" fill="#2a2a2a"/><rect x="30" y="20" width="4" height="6" rx="1" fill="#C8962A"/></svg>),
-  Sniper: (<svg viewBox="0 0 84 40" width="66" height="32"><rect x="4" y="20" width="10" height="9" rx="2" fill="#3a4a24"/><rect x="12" y="21" width="58" height="6" rx="2" fill="#6B8C3A"/><rect x="68" y="22" width="14" height="3" rx="1.5" fill="#8a8a8a"/><rect x="34" y="9" width="20" height="7" rx="3" fill="#2a2a2a"/><circle cx="36" cy="12.5" r="4" fill="#4A8FBF"/><rect x="41" y="16" width="3" height="6" fill="#2a2a2a"/></svg>),
-  Équipement: (<svg viewBox="0 0 44 46" width="42" height="44"><rect x="13" y="6" width="7" height="9" rx="2" fill="#8a7a4a"/><rect x="24" y="6" width="7" height="9" rx="2" fill="#8a7a4a"/><rect x="9" y="10" width="26" height="32" rx="4" fill="#a08a52"/><rect x="13" y="18" width="18" height="3.5" rx="1" fill="#5a4f2a"/><rect x="13" y="25" width="18" height="3.5" rx="1" fill="#5a4f2a"/><rect x="13" y="32" width="18" height="3.5" rx="1" fill="#5a4f2a"/></svg>),
-  Accessoire: (<svg viewBox="0 0 56 40" width="52" height="36"><rect x="10" y="13" width="34" height="14" rx="4" fill="#2a2a2a"/><circle cx="15" cy="20" r="7" fill="#4A8FBF"/><circle cx="40" cy="20" r="5.5" fill="#D94040"/><rect x="20" y="27" width="4" height="6" fill="#555"/><rect x="32" y="27" width="4" height="6" fill="#555"/></svg>),
-  Pièces: (<svg viewBox="0 0 48 44" width="46" height="42"><g fill="#C8962A"><rect x="15" y="3" width="6" height="30" rx="1"/><rect x="3" y="15" width="30" height="6" rx="1"/><rect transform="rotate(45 18 18)" x="15" y="3" width="6" height="30" rx="1"/><circle cx="18" cy="18" r="11"/></g><circle cx="18" cy="18" r="4.5" fill="#0F1010"/><g fill="#4A8FBF"><rect x="31" y="20" width="4" height="20" rx="1"/><rect x="23" y="28" width="20" height="4" rx="1"/><rect transform="rotate(45 33 30)" x="31" y="20" width="4" height="20" rx="1"/><circle cx="33" cy="30" r="7.5"/></g><circle cx="33" cy="30" r="3" fill="#0F1010"/></svg>),
+const CAT_BADGE = {
+  Tout: '/cat/tout.jpg',
+  AEG: '/cat/aeg.jpg',
+  GBB: '/cat/gbb.jpg',
+  Sniper: '/cat/sniper.jpg',
+  'Équipement': '/cat/equipement.jpg',
+  Accessoire: '/cat/accessoire.jpg',
+  'Pièces': '/cat/pieces.jpg',
 }
 const CATS = [
   { name: 'Tout', slug: 'Tout', emoji: '🎯' },
@@ -32,22 +32,23 @@ const TICKER = [
   'Tactical31 vient de vendre son M4',
   'AirsoftPro13 a reçu un avis 5 étoiles',
 ]
-const ACTIVITY = [
-  { user: 'Tactical31', action: 'a publié une nouvelle annonce', time: '2 min', live: true },
-  { user: 'Max_92', action: 'a rejoint AirsoftSwap', time: '5 min', live: true },
-  { user: 'Soldier75', action: 'a vendu son HK416D VFC', time: '12 min', live: false },
-  { user: 'AirsoftPro13', action: 'a laissé un avis 5★ à Nico75', time: '18 min', live: false },
-  { user: 'Dark_Airsoft', action: 'a publié une nouvelle annonce', time: '25 min', live: false },
-]
+function timeAgo(d) {
+  if (!d) return ''
+  const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000)
+  if (s < 60) return "à l'instant"
+  const m = Math.floor(s / 60); if (m < 60) return `${m} min`
+  const h = Math.floor(m / 60); if (h < 24) return `${h} h`
+  const j = Math.floor(h / 24); return `${j} j`
+}
 
 function CountUp({ to }) {
   const [v, setV] = useState(0)
-  const done = useRef(false)
   useEffect(() => {
-    if (done.current) return; done.current = true
-    const step = Math.ceil(to / 40)
+    const target = Number(to) || 0
+    if (target <= 0) { setV(0); return }
     let cur = 0
-    const iv = setInterval(() => { cur = Math.min(cur + step, to); setV(cur); if (cur >= to) clearInterval(iv) }, 45)
+    const step = Math.max(1, Math.ceil(target / 40))
+    const iv = setInterval(() => { cur = Math.min(cur + step, target); setV(cur); if (cur >= target) clearInterval(iv) }, 45)
     return () => clearInterval(iv)
   }, [to])
   return <>{v.toLocaleString('fr-FR')}</>
@@ -62,6 +63,7 @@ function AnnCard({ a, navigate, favs, toggleFav }) {
         {a.images && a.images.length > 0
           ? <img src={a.images[0]} alt={a.titre} />
           : <span style={{ fontSize: 52 }}>{EMOJI[a.categorie] || '🔫'}</span>}
+        {a.sold_at && <span style={{ position: 'absolute', top: 8, left: 8, background: 'var(--red)', color: '#fff', fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 800, fontSize: 11, letterSpacing: 1, padding: '3px 9px', borderRadius: 5, textTransform: 'uppercase', zIndex: 2, boxShadow: '0 2px 6px rgba(0,0,0,.4)' }}>Vendu</span>}
         <button className={`fav-btn ${isFav ? 'on' : ''}`} onClick={e => { e.stopPropagation(); toggleFav(a.id) }}>
           <i className={`ti ${isFav ? 'ti-heart-filled' : 'ti-heart'}`} style={{ fontSize: 13, color: isFav ? 'var(--red)' : 'var(--text3)' }}></i>
         </button>
@@ -119,7 +121,7 @@ function ProfilPopup({ user, onClose, navigate }) {
         </div>
         {/* Boutons */}
         <div style={{ padding: '14px 16px', display: 'flex', gap: 8 }}>
-          <button onClick={() => { navigate(`/profil/${user.id}`); onClose() }}
+          <button onClick={() => { if (user.id) { navigate(`/profil/${user.id}`); onClose() } }}
             style={{ flex: 2, padding: '10px', background: 'var(--g)', color: '#fff', border: 'none', borderRadius: 8, fontFamily: 'var(--fh)', fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.5px', cursor: 'pointer' }}>
             Voir le profil
           </button>
@@ -137,16 +139,39 @@ export default function Home() {
   const navigate = useNavigate()
   const { favs, toggleFav, user, setShowAuth } = useApp()
   const [annonces, setAnnonces] = useState([])
-  const [stats, setStats] = useState({ ann: 0, mem: 0 })
+  const [stats, setStats] = useState({ ann: 0, mem: 0, ventes: 0 })
   const [catCounts, setCatCounts] = useState({})
   const [loading, setLoading] = useState(true)
   const [popupUser, setPopupUser] = useState(null)
 
   useEffect(() => { load() }, [])
 
+  const activity = annonces.slice(0, 5).map(a => ({
+    user: a.profiles?.username || 'Anonyme',
+    action: `a publié « ${a.titre} »`,
+    time: timeAgo(a.created_at),
+    avatar: a.profiles?.avatar_url,
+    note: a.profiles?.note_moyenne || 0,
+    uid: a.profiles?.id,
+    nb_ventes: a.profiles?.nb_ventes || 0,
+    since: a.profiles?.created_at,
+    annonceId: a.id,
+  }))
+
+  const openUser = (a) => setPopupUser({
+    id: a.uid,
+    username: a.user,
+    avatar_url: a.avatar,
+    note_moyenne: a.note,
+    nb_ventes: a.nb_ventes,
+    nb_annonces: '—',
+    nb_avis: 0,
+    anciennete: a.since ? new Date(a.since).getFullYear() : '—',
+  })
+
   const load = async () => {
     const [{ data: ann }, { count: ac }, { count: mc }, venteRes] = await Promise.all([
-      supabase.from('annonces').select('*, profiles(username, note_moyenne, avatar_url)').order('created_at', { ascending: false }).limit(8),
+      supabase.from('annonces').select('*, profiles(id, username, note_moyenne, avatar_url, nb_ventes, created_at)').order('created_at', { ascending: false }).limit(8),
       supabase.from('annonces').select('*', { count: 'exact', head: true }),
       supabase.from('profiles').select('*', { count: 'exact', head: true }),
       supabase.from('profiles').select('nb_ventes'),
@@ -167,13 +192,13 @@ export default function Home() {
   return (
     <div>
       {/* HERO — Ghillie sniper plein fond + overlay kaki */}
-      <div style={{ position: 'relative', height: 480, overflow: 'hidden', display: 'flex', alignItems: 'center' }}>
+      <div className="hero-wrap">
         {/* Image ghillie sniper */}
         <div style={{ position: 'absolute', inset: 0 }}>
-          <img src="https://images.unsplash.com/photo-1585503418537-88331351ad99?w=1600&q=80" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', filter: 'brightness(.25) saturate(.4) sepia(.15)' }} />
+          <img src="/hero.jpg" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', filter: 'brightness(.6) saturate(.95)' }} />
         </div>
         {/* Overlay dégradé latéral */}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, var(--bg) 35%, rgba(10,11,9,.6) 60%, rgba(10,11,9,.2) 100%)' }}></div>
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(10,11,9,.85) 0%, rgba(10,11,9,.55) 42%, rgba(10,11,9,.15) 72%, rgba(10,11,9,0) 100%)' }}></div>
         {/* Teinte kaki */}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(135deg, rgba(107,140,58,.12) 0%, transparent 50%)' }}></div>
         {/* Grille subtile */}
@@ -181,13 +206,13 @@ export default function Home() {
         {/* Ligne kaki en bas */}
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 1, background: 'linear-gradient(90deg, transparent, var(--g), transparent)' }}></div>
         {/* Contenu */}
-        <div style={{ position: 'relative', zIndex: 2, padding: '0 60px', maxWidth: 580 }}>
+        <div className="hero-inner">
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 600, letterSpacing: '2px', color: 'var(--g)', textTransform: 'uppercase', marginBottom: 14 }}>
             <span style={{ width: 16, height: 2, background: 'var(--g)', display: 'inline-block' }}></span>
             Marketplace française #1
             <span style={{ width: 40, height: 1, background: 'linear-gradient(90deg, var(--g), transparent)', display: 'inline-block' }}></span>
           </div>
-          <h1 style={{ fontFamily: 'var(--fh)', fontSize: 62, fontWeight: 800, lineHeight: .9, letterSpacing: '-1px', textTransform: 'uppercase', marginBottom: 14 }}>
+          <h1 className="hero-h1">
             La marketplace<br /><span style={{ color: 'var(--g)' }}>Airsoft</span><br />française
           </h1>
           <p style={{ fontSize: 15, color: 'var(--text2)', marginBottom: 26, lineHeight: 1.65, maxWidth: 420 }}>Achetez, vendez et échangez vos répliques entre passionnés en toute confiance.</p>
@@ -203,7 +228,7 @@ export default function Home() {
         {[
           { val: <CountUp to={stats.mem} />, lab: 'Membres' },
           { val: <CountUp to={stats.ann} />, lab: 'Annonces en ligne' },
-          { val: <CountUp to={0} />, lab: 'Ventes réussies' },
+          { val: <CountUp to={stats.ventes} />, lab: 'Ventes réussies' },
           { val: <>100<span className="acc">%</span></>, lab: 'Gratuit' },
         ].map((s, i) => (
           <div key={i} className="stat">
@@ -219,21 +244,17 @@ export default function Home() {
           <div className="sec-title">Catégories populaires</div>
           <div className="sec-more" onClick={() => navigate('/annonces')}>Voir tout <i className="ti ti-chevron-right"></i></div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 10 }}>
+        <div className="cats-grid">
           {CATS.map(cat => (
             <div key={cat.slug}
               onClick={() => navigate(`/annonces?cat=${cat.slug}`)}
-              style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', cursor: 'pointer', transition: 'all .2s' }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--g)'; e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,.4)' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none' }}>
-              <div style={{ height: 90, background: 'var(--bg3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 42, position: 'relative' }}>
-                {CAT_ICON[cat.slug] || cat.emoji}
-                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, background: 'linear-gradient(90deg, var(--g), transparent)' }}></div>
+              style={{ cursor: 'pointer', transition: 'transform .2s, filter .2s', textAlign: 'center' }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.filter = 'brightness(1.12)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.filter = 'none' }}>
+              <div className="cat-badge">
+                <img src={CAT_BADGE[cat.slug]} alt={cat.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
               </div>
-              <div style={{ padding: '10px 8px' }}>
-                <div style={{ fontFamily: 'var(--fh)', fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.5px', color: 'var(--text2)', textAlign: 'center' }}>{cat.name}</div>
-                <div style={{ fontSize: 10, color: 'var(--text3)', textAlign: 'center', marginTop: 2 }}>{catCounts[cat.slug] || 0} annonces</div>
-              </div>
+              <div style={{ fontSize: 10, color: 'var(--text3)', textAlign: 'center', marginTop: 2 }}>{catCounts[cat.slug] || 0} annonces</div>
             </div>
           ))}
         </div>
@@ -261,23 +282,26 @@ export default function Home() {
 
       {/* ACTIVITE + WHY */}
       <div className="section">
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
+        <div className="two-col">
           <div>
             <div className="sec-title" style={{ marginBottom: 16 }}>Activité récente</div>
             <div>
-              {ACTIVITY.map((a, i) => (
+              {activity.length === 0 && (
+                <div style={{ fontSize: 13, color: 'var(--text3)', padding: '8px 0' }}>Aucune activité récente pour le moment.</div>
+              )}
+              {activity.map((a, i) => (
                 <div key={i} className="act-item">
-                  <div className="act-av" style={{ cursor: 'pointer' }}
-                    onClick={() => setPopupUser({ username: a.user, nb_ventes: 5, nb_annonces: 12, note_moyenne: 4.8, nb_avis: 23, anciennete: '1 an' })}>
-                    {a.user.slice(0, 2).toUpperCase()}
+                  <div className="act-av" style={{ cursor: 'pointer', overflow: 'hidden' }}
+                    onClick={() => openUser(a)}>
+                    {a.avatar ? <img src={a.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : a.user.slice(0, 2).toUpperCase()}
                   </div>
                   <div className="act-text">
                     <strong style={{ cursor: 'pointer', color: 'var(--g)' }}
-                      onClick={() => setPopupUser({ username: a.user, nb_ventes: 5, nb_annonces: 12, note_moyenne: 4.8, nb_avis: 23, anciennete: '1 an' })}>
+                      onClick={() => openUser(a)}>
                       {a.user}
                     </strong> {a.action}
                   </div>
-                  {a.live && <div className="act-live"></div>}
+                  {i === 0 && <div className="act-live"></div>}
                   <div className="act-time">{a.time}</div>
                 </div>
               ))}
@@ -294,7 +318,7 @@ export default function Home() {
             <div className="trust-box">
               {[
                 ['Email vérifié', 'obligatoire pour publier'],
-                ['Avis authentiques', 'après échange prouvé uniquement'],
+                ['Avis authentiques', 'après transaction confirmée uniquement'],
                 ['Signalement', 'en 1 clic — traité sous 24h'],
                 ['RGPD', 'données protégées'],
               ].map(([t, s], i) => (

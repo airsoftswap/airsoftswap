@@ -78,6 +78,7 @@ export default function Annonces() {
                   {a.images && a.images.length > 0
                     ? <img src={a.images[0]} alt={a.titre} />
                     : <span style={{ fontSize: 52 }}>{EMOJI[a.categorie] || '🔫'}</span>}
+                  {a.sold_at && <span style={{ position: 'absolute', top: 8, left: 8, background: 'var(--red)', color: '#fff', fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 800, fontSize: 11, letterSpacing: 1, padding: '3px 9px', borderRadius: 5, textTransform: 'uppercase', zIndex: 2, boxShadow: '0 2px 6px rgba(0,0,0,.4)' }}>Vendu</span>}
                   <button className={`fav-btn`} onClick={e => { e.stopPropagation(); toggleFav(a.id) }}>
                     <i className={`ti ti-heart`} style={{ fontSize: 13, color: 'var(--text3)' }}></i>
                   </button>

@@ -20,7 +20,7 @@ export default function AnnonceDetail() {
   const [tx, setTx] = useState(null)
   const [txLoading, setTxLoading] = useState(false)
 
-  useEffect(() => { load() }, [id])
+  useEffect(() => { load() }, [id, user])
 
   const load = async () => {
     const { data } = await supabase.from('annonces')
@@ -102,7 +102,7 @@ export default function AnnonceDetail() {
         <i className="ti ti-arrow-left"></i> Retour
       </button>
 
-      <div style={{ display:'grid',gridTemplateColumns:'1fr 340px',gap:28 }}>
+      <div className="det-grid">
         {/* LEFT */}
         <div>
           {/* PHOTO PRINCIPALE */}
@@ -136,6 +136,18 @@ export default function AnnonceDetail() {
           </div>
           <h1 style={{ fontFamily:'var(--fh)',fontSize:28,fontWeight:700,letterSpacing:'-.3px',marginBottom:8,lineHeight:1.1,color:'var(--text)' }}>{ann.titre}</h1>
           <div style={{ fontFamily:'var(--fh)',fontSize:36,fontWeight:800,color:'var(--g)',marginBottom:12 }}>{Number(ann.prix).toFixed(2)} €</div>
+          {ann.sold_at && (
+            <div style={{ display:'inline-flex',alignItems:'center',gap:6,background:'var(--red)',color:'#fff',fontFamily:'var(--fh)',fontWeight:800,fontSize:13,letterSpacing:1,textTransform:'uppercase',padding:'4px 12px',borderRadius:6,marginBottom:14 }}>
+              <i className="ti ti-circle-check"></i> Vendu
+            </div>
+          )}
+          {isOwner && ann.sold_at && (
+            <div style={{ background:'rgba(217,64,64,.12)',border:'1px solid var(--red)',borderRadius:10,padding:14,marginBottom:16 }}>
+              <div style={{ fontWeight:700,color:'var(--text)',marginBottom:4 }}>🎉 Bravo, c'est vendu !</div>
+              <div style={{ fontSize:13,color:'var(--text2)',marginBottom:12 }}>Vous pouvez supprimer cette annonce dès maintenant. Sinon, elle sera retirée automatiquement dans les 24 heures.</div>
+              <button className="btn btn-danger" onClick={deleteAnn}><i className="ti ti-trash"></i> Supprimer maintenant</button>
+            </div>
+          )}
           <div style={{ display:'flex',gap:18,color:'var(--text3)',fontSize:13,marginBottom:22 }}>
             <span><i className="ti ti-map-pin"></i> {ann.ville||'France'}</span>
             <span><i className="ti ti-calendar"></i> {new Date(ann.created_at).toLocaleDateString('fr-FR')}</span>

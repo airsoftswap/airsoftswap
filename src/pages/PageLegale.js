@@ -137,16 +137,22 @@ Le non-respect de ces règles entraîne selon la gravité : un avertissement, un
   'comment-ca-marche': {
     title: 'Comment ça marche ?',
     content: `## 1. Créez votre compte gratuitement
-Inscrivez-vous avec votre email. Confirmez votre adresse email pour activer votre compte. Choisissez un pseudo — aucune information personnelle obligatoire.
+Inscrivez-vous avec votre email. Confirmez votre adresse email pour activer votre compte. Choisissez un pseudo — aucune information personnelle obligatoire. Mot de passe oublié ? Un lien de réinitialisation vous est envoyé par email.
 
 ## 2. Publiez une annonce
-Remplissez le formulaire en moins de 2 minutes. Ajoutez jusqu'à 3 photos de votre article. Fixez votre prix librement. Quota de 3 annonces gratuites par 24 heures.
+Remplissez le formulaire en moins de 2 minutes. Ajoutez jusqu'à 3 photos de votre article. Fixez votre prix librement. Quota de 3 annonces gratuites par semaine (sur 7 jours glissants).
 
 ## 3. Achetez ou vendez
 Parcourez les annonces par catégorie ou utilisez la recherche. Contactez le vendeur via la messagerie interne. Négociez directement entre particuliers. Convenez des modalités de transaction.
 
-## 4. Laissez un avis
-Après votre échange, laissez un avis sur le profil du vendeur ou de l'acheteur. Les avis sont uniquement possibles après un échange de messages prouvé — aucune manipulation possible.
+## 4. Confirmez la transaction
+Une fois l'échange réalisé, l'acheteur et le vendeur confirment chacun la vente (double confirmation). L'annonce est alors marquée « Vendu » et les compteurs de ventes et d'achats sont mis à jour.
+
+## 5. Laissez un avis
+Après une transaction confirmée par les deux parties, laissez un avis sur le profil de l'autre membre. Les avis ne sont possibles qu'après une transaction confirmée — aucune manipulation possible.
+
+## Durée de vie des annonces
+Une annonce invendue est supprimée automatiquement au bout de 3 mois. Une annonce vendue affiche le badge « Vendu » : le vendeur peut la supprimer immédiatement, sinon elle est retirée automatiquement sous 24 heures.
 
 ## Conseils importants
 Privilégiez toujours la remise en main propre. Vérifiez le profil et les avis avant toute transaction. Ne payez jamais à l'avance sans avoir vu l'article. En cas de problème, signalez l'annonce ou le membre via le bouton prévu.`
