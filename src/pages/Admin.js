@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase'
 import { useApp } from '../App'
 
 const ADMIN_ID = 'e21bb865-90d4-4995-88f5-1b6bf1a324a1'
+const ADMIN_EMAIL = 'gamerscss@yahoo.fr'
+const isAdminUser = u => !!u && (u.id === ADMIN_ID || u.email === ADMIN_EMAIL)
 
 export default function Admin() {
   const navigate = useNavigate()
@@ -18,22 +20,40 @@ export default function Admin() {
 
   useEffect(() => {
     if (!user) { navigate('/'); return }
-    if (user.id !== ADMIN_ID) { navigate('/'); return }
+    if (!isAdminUser(user)) { navigate('/'); return }
     load()
   }, [user])
 
   const load = async () => {
     setLoading(true)
-    const [{ data: ann }, { data: usr }, { count: ac }, { count: uc }] = await Promise.all([
-      supabase.from('annonces').select('*, profiles(username, email)').order('created_at', { ascending: false }),
+    const [{ data: ann }, { data: usr }, { count: ac }, { count: uc }, { data: sig }] = await Promise.all([
+      supabase.from('annonces').select('*, profiles(username)').order('created_at', { ascending: false }),
       supabase.from('profiles').select('*').order('created_at', { ascending: false }),
       supabase.from('annonces').select('*', { count: 'exact', head: true }),
       supabase.from('profiles').select('*', { count: 'exact', head: true }),
+      supabase.from('signalements').select('*').order('created_at', { ascending: false }),
     ])
     setAnnonces(ann || [])
     setUsers(usr || [])
+    let sigList = sig || []
+    const repIds = [...new Set(sigList.map(s => s.reporter_id).filter(Boolean))]
+    if (repIds.length) {
+      const { data: reps } = await supabase.from('profiles').select('id,username').in('id', repIds)
+      const map = Object.fromEntries((reps || []).map(r => [r.id, r.username]))
+      sigList = sigList.map(s => ({ ...s, reporter_name: map[s.reporter_id] }))
+    }
+    setSignalements(sigList)
     setStats({ ann: ac || 0, users: uc || 0 })
     setLoading(false)
+  }
+
+  const resolveSignal = async (id) => {
+    await supabase.from('signalements').update({ status: 'traité' }).eq('id', id)
+    setSignalements(prev => prev.map(s => s.id === id ? { ...s, status: 'traité' } : s))
+  }
+  const deleteSignal = async (id) => {
+    await supabase.from('signalements').delete().eq('id', id)
+    setSignalements(prev => prev.filter(s => s.id !== id))
   }
 
   const deleteAnn = async (id, images) => {
@@ -53,7 +73,7 @@ export default function Admin() {
     setUsers(prev => prev.filter(u => u.id !== id))
   }
 
-  if (!user || user.id !== ADMIN_ID) return null
+  if (!isAdminUser(user)) return null
 
   const filteredAnn = annonces.filter(a =>
     a.titre?.toLowerCase().includes(search.toLowerCase()) ||
@@ -99,6 +119,7 @@ export default function Admin() {
           {[
             { id: 'annonces', label: `📋 Annonces (${annonces.length})` },
             { id: 'membres', label: `👥 Membres (${users.length})` },
+            { id: 'signalements', label: `🚩 Signalements (${signalements.filter(s => s.status !== 'traité').length})` },
           ].map(t => (
             <button key={t.id} onClick={() => { setTab(t.id); setSearch('') }}
               style={{ padding: '9px 18px', background: tab === t.id ? 'var(--g)' : 'var(--bg2)', color: tab === t.id ? '#fff' : 'var(--text2)', border: `1px solid ${tab === t.id ? 'var(--g)' : 'var(--border)'}`, borderRadius: 8, fontFamily: 'var(--fh)', fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.5px', cursor: 'pointer', transition: 'all .2s' }}>
@@ -148,6 +169,34 @@ export default function Admin() {
                       style={{ padding: '7px 12px', background: 'rgba(217,64,64,.1)', border: '1px solid rgba(217,64,64,.2)', borderRadius: 6, fontSize: 12, color: 'var(--red)', cursor: 'pointer' }}>
                       🗑 Supprimer
                     </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : tab === 'signalements' ? (
+
+            /* SIGNALEMENTS */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {signalements.length === 0 && <div style={{ textAlign: 'center', padding: 40, color: 'var(--text3)' }}>Aucun signalement 🎉</div>}
+              {signalements.map(s => (
+                <div key={s.id} style={{ background: 'var(--bg2)', border: `1px solid ${s.status === 'traité' ? 'var(--border)' : 'rgba(217,64,64,.3)'}`, borderRadius: 10, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 16, opacity: s.status === 'traité' ? .55 : 1 }}>
+                  <div style={{ fontSize: 22, flexShrink: 0 }}>🚩</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontFamily: 'var(--fh)', fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 3 }}>{s.raison}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text3)', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                      <span>📋 {s.annonce_titre || '(annonce supprimée)'}</span>
+                      <span>👤 {s.reporter_name || 'Anonyme'}</span>
+                      <span>📅 {new Date(s.created_at).toLocaleDateString('fr-FR')}</span>
+                      {s.status === 'traité' && <span style={{ color: 'var(--g)' }}>✓ Traité</span>}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                    {s.annonce_id && <button onClick={() => navigate(`/annonces/${s.annonce_id}`)}
+                      style={{ padding: '7px 12px', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12, color: 'var(--text2)', cursor: 'pointer' }}>👁 Voir</button>}
+                    {s.status !== 'traité' && <button onClick={() => resolveSignal(s.id)}
+                      style={{ padding: '7px 12px', background: 'var(--gs)', border: '1px solid var(--gg)', borderRadius: 6, fontSize: 12, color: 'var(--g)', cursor: 'pointer' }}>✓ Traité</button>}
+                    <button onClick={() => deleteSignal(s.id)}
+                      style={{ padding: '7px 12px', background: 'rgba(217,64,64,.1)', border: '1px solid rgba(217,64,64,.2)', borderRadius: 6, fontSize: 12, color: 'var(--red)', cursor: 'pointer' }}>🗑</button>
                   </div>
                 </div>
               ))}

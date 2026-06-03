@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useApp } from '../App'
+import { DEPARTEMENTS } from '../lib/departements'
 
 const CATS = ['Tout', 'AEG', 'GBB', 'Sniper', 'Équipement', 'Accessoire', 'Pièces']
 const ETATS = ['Tout état', 'Neuf', 'Très bon état', 'Bon état', 'État correct']
@@ -20,8 +21,9 @@ export default function Annonces() {
   const [search, setSearch] = useState(params.get('q') || '')
   const [pmin, setPmin] = useState('')
   const [pmax, setPmax] = useState('')
+  const [dep, setDep] = useState(params.get('dep') || '')
 
-  useEffect(() => { load() }, [cat, etat, tri, search, pmin, pmax])
+  useEffect(() => { load() }, [cat, etat, tri, search, pmin, pmax, dep])
 
   const load = async () => {
     setLoading(true)
@@ -29,6 +31,7 @@ export default function Annonces() {
     if (search.trim()) q = q.or(`titre.ilike.%${search.trim()}%,description.ilike.%${search.trim()}%`)
     if (cat !== 'Tout') q = q.eq('categorie', cat)
     if (etat !== 'Tout état') q = q.eq('etat', etat)
+    if (dep) q = q.eq('departement', dep)
     if (pmin) q = q.gte('prix', parseFloat(pmin))
     if (pmax) q = q.lte('prix', parseFloat(pmax))
     q = q.order(tri === 'prix_asc' || tri === 'prix_desc' ? 'prix' : 'created_at', { ascending: tri === 'prix_asc' })
@@ -51,6 +54,10 @@ export default function Annonces() {
           <input value={pmax} onChange={e => setPmax(e.target.value)} placeholder="Max €" type="number" style={{ width: 90, background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 'var(--r2)', padding: '9px 12px', fontSize: 13, color: 'var(--text)', outline: 'none' }} />
           <select value={etat} onChange={e => setEtat(e.target.value)} style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 'var(--r2)', padding: '9px 12px', fontSize: 13, color: 'var(--text)', outline: 'none' }}>
             {ETATS.map(e => <option key={e}>{e}</option>)}
+          </select>
+          <select value={dep} onChange={e => setDep(e.target.value)} style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 'var(--r2)', padding: '9px 12px', fontSize: 13, color: 'var(--text)', outline: 'none', maxWidth: 180 }}>
+            <option value="">Tous départements</option>
+            {DEPARTEMENTS.map(([code, nom]) => <option key={code} value={code}>{code} — {nom}</option>)}
           </select>
           <select value={tri} onChange={e => setTri(e.target.value)} style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 'var(--r2)', padding: '9px 12px', fontSize: 13, color: 'var(--text)', outline: 'none' }}>
             <option value="recent">Plus récentes</option>
@@ -87,7 +94,7 @@ export default function Annonces() {
                   <div style={{ marginBottom: 6 }}><span className={`badge ${ETAT[a.etat] || 'b-be'}`}>{a.etat}</span></div>
                   <div className="at">{a.titre}</div>
                   <div className="ap">{Number(a.prix).toFixed(2)} €</div>
-                  <div className="al"><i className="ti ti-map-pin" style={{ fontSize: 11 }}></i>{a.ville || 'France'}</div>
+                  <div className="al"><i className="ti ti-map-pin" style={{ fontSize: 11 }}></i>{a.ville || 'France'}{a.departement ? ` (${a.departement})` : ''}</div>
                   <div className="af">
                     <div className="as"><div className="av">{a.profiles?.username?.slice(0,2).toUpperCase()||'??'}</div>{a.profiles?.username||'Anonyme'}</div>
                     {a.profiles?.note_moyenne > 0 && <div className="ar">★ {Number(a.profiles.note_moyenne).toFixed(1)}</div>}

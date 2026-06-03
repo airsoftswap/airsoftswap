@@ -91,8 +91,10 @@ function ProfilPopup({ user, onClose, navigate }) {
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(90deg, var(--g), transparent)' }}></div>
         {/* Header */}
         <div style={{ padding: '20px 20px 16px', display: 'flex', gap: 14, alignItems: 'flex-start', borderBottom: '1px solid var(--border)' }}>
-          <div style={{ width: 64, height: 64, borderRadius: 12, background: 'var(--gs)', border: '2px solid var(--gg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 800, color: 'var(--g)', fontFamily: 'var(--fh)', flexShrink: 0 }}>
-            {user.username?.slice(0, 2).toUpperCase() || '??'}
+          <div style={{ width: 64, height: 64, borderRadius: 12, background: 'var(--gs)', border: '2px solid var(--gg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 800, color: 'var(--g)', fontFamily: 'var(--fh)', flexShrink: 0, overflow: 'hidden' }}>
+            {user.avatar_url
+              ? <img src={user.avatar_url} alt={user.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : (user.username?.slice(0, 2).toUpperCase() || '??')}
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ fontFamily: 'var(--fh)', fontSize: 20, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '-.3px', marginBottom: 5, color: 'var(--text)' }}>{user.username}</div>
@@ -100,20 +102,23 @@ function ProfilPopup({ user, onClose, navigate }) {
               <span style={{ background: 'var(--gs)', border: '1px solid var(--gg)', color: 'var(--g)', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, fontFamily: 'var(--fh)', textTransform: 'uppercase', letterSpacing: '.5px' }}>✓ Vérifié</span>
               {user.nb_ventes >= 10 && <span style={{ background: 'rgba(200,150,42,.12)', border: '1px solid rgba(200,150,42,.3)', color: 'var(--amber)', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, fontFamily: 'var(--fh)', textTransform: 'uppercase', letterSpacing: '.5px' }}>⭐ Top vendeur</span>}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text3)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text3)', marginBottom: 6 }}>
               <span style={{ color: 'var(--amber)', fontSize: 13 }}>{'★'.repeat(Math.round(user.note_moyenne || 0))}</span>
               <span>{user.note_moyenne ? Number(user.note_moyenne).toFixed(1) : '—'} <span style={{ color: 'var(--text3)' }}>({user.nb_avis || 0} avis)</span></span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--text3)' }}>
+              <i className="ti ti-calendar" style={{ fontSize: 13 }}></i>
+              Membre depuis {user.since ? new Date(user.since).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : '—'}
             </div>
           </div>
         </div>
         {/* Stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', borderBottom: '1px solid var(--border)' }}>
           {[
             { v: user.nb_annonces || 0, l: 'Annonces' },
             { v: user.nb_ventes || 0, l: 'Ventes' },
-            { v: user.anciennete || '—', l: 'Membre' },
           ].map((s, i) => (
-            <div key={i} style={{ padding: '12px 8px', textAlign: 'center', borderRight: i < 2 ? '1px solid var(--border)' : 'none' }}>
+            <div key={i} style={{ padding: '12px 8px', textAlign: 'center', borderRight: i < 1 ? '1px solid var(--border)' : 'none' }}>
               <div style={{ fontFamily: 'var(--fh)', fontSize: 22, fontWeight: 800, color: 'var(--g)', lineHeight: 1 }}>{s.v}</div>
               <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 3, textTransform: 'uppercase', letterSpacing: '.5px' }}>{s.l}</div>
             </div>
@@ -166,7 +171,7 @@ export default function Home() {
     nb_ventes: a.nb_ventes,
     nb_annonces: '—',
     nb_avis: 0,
-    anciennete: a.since ? new Date(a.since).getFullYear() : '—',
+    since: a.since,
   })
 
   const load = async () => {

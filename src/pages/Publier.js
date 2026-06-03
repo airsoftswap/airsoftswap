@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useApp } from '../App'
+import { DEPARTEMENTS } from '../lib/departements'
 
 const MAX = 3
 const MAX_PHOTOS = 3
@@ -38,7 +39,7 @@ async function compressImage(file) {
 export default function Publier() {
   const navigate = useNavigate()
   const { user, setShowAuth, showToast, profile } = useApp()
-  const [f, setF] = useState({ titre: '', categorie: 'AEG', etat: 'Très bon état', prix: '', ville: '', description: '' })
+  const [f, setF] = useState({ titre: '', categorie: 'AEG', etat: 'Très bon état', prix: '', ville: '', departement: '', description: '' })
   const [photos, setPhotos] = useState([]) // { file, preview, compressed }
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
@@ -119,6 +120,7 @@ export default function Publier() {
         etat: f.etat,
         prix: parseFloat(f.prix),
         ville: f.ville.trim(),
+        departement: f.departement || null,
         description: f.description.trim(),
         boosted: false,
         images: photoUrls,
@@ -204,6 +206,13 @@ export default function Publier() {
         <div className="frow">
           <div className="fgroup"><label>Prix (€) *</label><input type="number" placeholder="150" min="1" step="0.01" value={f.prix} onChange={e => setF({ ...f, prix: e.target.value })} required /></div>
           <div className="fgroup"><label>Ville *</label><input type="text" placeholder="Lyon, Paris..." value={f.ville} onChange={e => setF({ ...f, ville: e.target.value })} required /></div>
+          <div className="fgroup"><label>Département</label>
+            <select value={f.departement} onChange={e => setF({ ...f, departement: e.target.value })}
+              style={{ width: '100%', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 13px', fontSize: 14, color: 'var(--text)', outline: 'none' }}>
+              <option value="">— Choisir un département —</option>
+              {DEPARTEMENTS.map(([code, nom]) => <option key={code} value={code}>{code} — {nom}</option>)}
+            </select>
+          </div>
         </div>
         <div className="fgroup"><label>Description</label><textarea placeholder="Décrivez la réplique, son état, les upgrades inclus, la raison de la vente..." value={f.description} onChange={e => setF({ ...f, description: e.target.value })}></textarea></div>
 

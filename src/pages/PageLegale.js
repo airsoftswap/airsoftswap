@@ -149,7 +149,7 @@ Parcourez les annonces par catégorie ou utilisez la recherche. Contactez le ven
 Une fois l'échange réalisé, l'acheteur et le vendeur confirment chacun la vente (double confirmation). L'annonce est alors marquée « Vendu » et les compteurs de ventes et d'achats sont mis à jour.
 
 ## 5. Laissez un avis
-Après une transaction confirmée par les deux parties, laissez un avis sur le profil de l'autre membre. Les avis ne sont possibles qu'après une transaction confirmée — aucune manipulation possible.
+Dès que vous avez échangé au moins un message avec un membre, vous pouvez laisser un avis sur son profil. Un seul avis par membre — simple et sans manipulation possible.
 
 ## Durée de vie des annonces
 Une annonce invendue est supprimée automatiquement au bout de 3 mois. Une annonce vendue affiche le badge « Vendu » : le vendeur peut la supprimer immédiatement, sinon elle est retirée automatiquement sous 24 heures.

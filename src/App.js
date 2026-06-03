@@ -52,12 +52,20 @@ function AuthModal({ onClose }) {
       if (error) setErr(error.message)
       else setInfo("Si un compte existe pour cet email, un lien de réinitialisation vient d'être envoyé. Pensez à vérifier vos spams.")
     } else {
-      if (!f.username.trim() || f.username.length < 3) { setErr('Pseudo requis (min 3 caractères).'); setLoading(false); return }
+      const uname = f.username.trim()
+      if (!uname || uname.length < 3) { setErr('Pseudo requis (min 3 caractères).'); setLoading(false); return }
       if (f.password.length < 6) { setErr('Mot de passe trop court (min 6 caractères).'); setLoading(false); return }
-      const { data, error } = await supabase.auth.signUp({ email: f.email, password: f.password })
-      if (error) { setErr(error.message); setLoading(false); return }
+      // Vérifie que le pseudo n'est pas déjà pris (insensible à la casse)
+      const { data: taken } = await supabase.from('profiles').select('id').ilike('username', uname).maybeSingle()
+      if (taken) { setErr('Ce pseudo est déjà pris, choisis-en un autre.'); setLoading(false); return }
+      const { data, error } = await supabase.auth.signUp({ email: f.email, password: f.password, options: { data: { username: uname } } })
+      if (error) {
+        if (/duplicate|unique|already/i.test(error.message)) setErr('Ce pseudo est déjà pris, choisis-en un autre.')
+        else setErr(error.message)
+        setLoading(false); return
+      }
       if (data.user) {
-        await supabase.from('profiles').upsert({ id: data.user.id, username: f.username.trim(), nb_ventes: 0, nb_achats: 0, note_moyenne: 0 })
+        await supabase.from('profiles').upsert({ id: data.user.id, username: uname, nb_ventes: 0, nb_achats: 0, note_moyenne: 0 })
         showToast('ok', 'Compte créé ! Vérifiez votre email.')
         onClose()
       }
@@ -225,6 +233,7 @@ function Navbar({ onAuth }) {
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [unread, setUnread] = useState(0)
+  const [signalCount, setSignalCount] = useState(0)
   const [isDark, setIsDark] = useState(true)
 
   useEffect(() => {
@@ -233,6 +242,9 @@ function Navbar({ onAuth }) {
 
   useEffect(() => {
     if (user) supabase.from('messages').select('id', { count: 'exact', head: true }).eq('receiver_id', user.id).eq('lu', false).then(({ count }) => setUnread(count || 0))
+    if (user && (user.id === 'e21bb865-90d4-4995-88f5-1b6bf1a324a1' || user.email === 'gamerscss@yahoo.fr'))
+      supabase.from('signalements').select('id', { count: 'exact', head: true }).neq('status', 'traité').then(({ count }) => setSignalCount(count || 0))
+    else setSignalCount(0)
   }, [user, location])
 
   const toggleTheme = () => {
@@ -265,6 +277,8 @@ function Navbar({ onAuth }) {
           </button>
         )}
         {user && <button className={`nav-link ${on('/profil') ? 'on' : ''}`} onClick={() => navigate(`/profil/${user.id}`)}>Mon profil</button>}
+        {user && (user.id === 'e21bb865-90d4-4995-88f5-1b6bf1a324a1' || user.email === 'gamerscss@yahoo.fr') &&
+          <button className={`nav-link ${on('/admin') ? 'on' : ''}`} style={{ color: 'var(--amber)' }} onClick={() => navigate('/admin')}>🛡 Admin{signalCount > 0 && <span style={{ background: 'var(--red)', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 10, padding: '1px 5px', marginLeft: 4 }}>{signalCount}</span>}</button>}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
         <DonModal />
@@ -298,6 +312,12 @@ function Navbar({ onAuth }) {
         : <div className="mn" onClick={onAuth}>
             <i className="ti ti-login mn-ico"></i>Connexion
           </div>
+      }
+      {user && (user.id === 'e21bb865-90d4-4995-88f5-1b6bf1a324a1' || user.email === 'gamerscss@yahoo.fr') &&
+        <div className={`mn ${on('/admin') ? 'on' : ''}`} onClick={() => navigate('/admin')} style={{ color: 'var(--amber)', position: 'relative' }}>
+          <i className="ti ti-shield mn-ico"></i>Admin
+          {signalCount > 0 && <span style={{ position: 'absolute', top: -2, right: '50%', marginRight: -20, background: 'var(--red)', color: '#fff', fontSize: 9, fontWeight: 700, borderRadius: 10, padding: '0 4px', minWidth: 14, textAlign: 'center' }}>{signalCount}</span>}
+        </div>
       }
     </div>
     </>

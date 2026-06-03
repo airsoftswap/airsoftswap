@@ -17,8 +17,7 @@ export default function AnnonceDetail() {
   const [sending, setSending] = useState(false)
   const [showSignal, setShowSignal] = useState(false)
   const [activePhoto, setActivePhoto] = useState(0)
-  const [tx, setTx] = useState(null)
-  const [txLoading, setTxLoading] = useState(false)
+  const [signalReason, setSignalReason] = useState('Arnaque / Faux produit')
 
   useEffect(() => { load() }, [id, user])
 
@@ -27,19 +26,6 @@ export default function AnnonceDetail() {
       .select('*, profiles(id,username,note_moyenne,nb_ventes,created_at,ville)')
       .eq('id', id).single()
     setAnn(data); setLoading(false)
-    if (user && data && user.id !== data.user_id) {
-      const { data: t } = await supabase.from('transactions').select('*').eq('annonce_id', data.id).eq('buyer_id', user.id).maybeSingle()
-      setTx(t || null)
-    }
-  }
-
-  const confirmTx = async () => {
-    if (!user) { setShowAuth(true); return }
-    setTxLoading(true)
-    const { error } = await supabase.rpc('confirm_transaction', { p_annonce: ann.id, p_other: ann.user_id })
-    if (error) showToast('err', 'Erreur : '+error.message)
-    else { showToast('ok', "C'est noté !"); await load() }
-    setTxLoading(false)
   }
 
   const sendMsg = async () => {
@@ -61,7 +47,8 @@ export default function AnnonceDetail() {
       const paths = ann.images.map(url => url.split('/annonces-photos/')[1]).filter(Boolean)
       if (paths.length > 0) await supabase.storage.from('annonces-photos').remove(paths)
     }
-    await supabase.from('annonces').delete().eq('id', id)
+    const { error } = await supabase.from('annonces').delete().eq('id', id)
+    if (error) { showToast('err', "Suppression impossible (l'annonce est peut-être liée à une vente).") ; return }
     showToast('ok', 'Annonce supprimée.')
     navigate('/annonces')
   }
@@ -70,6 +57,7 @@ export default function AnnonceDetail() {
   if (!ann) return <div className="empty"><i className="ti ti-ghost"></i><p>Annonce introuvable.</p></div>
 
   const isOwner = user?.id === ann.user_id
+  const isAdmin = user?.id === 'e21bb865-90d4-4995-88f5-1b6bf1a324a1' || user?.email === 'gamerscss@yahoo.fr'
   const isFav = favs.includes(ann.id)
   const memberYear = ann.profiles?.created_at ? new Date(ann.profiles.created_at).getFullYear() : '?'
   const hasPhotos = ann.images && ann.images.length > 0
@@ -77,13 +65,13 @@ export default function AnnonceDetail() {
   return (
     <div className="section" style={{ maxWidth: 1060, margin: '0 auto' }}>
       {showSignal && (
-        <div className="overlay" onClick={() => setShowSignal(false)}>
+        <div className="overlay show" onClick={() => setShowSignal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <button className="modal-close" onClick={() => setShowSignal(false)}><i className="ti ti-x"></i></button>
             <div className="modal-title">Signaler cette annonce</div>
             <div className="modal-sub">Aidez-nous à garder la communauté saine.</div>
             <div className="fgroup"><label>Raison</label>
-              <select style={{ width:'100%',background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:8,padding:'10px 13px',fontSize:14,color:'var(--text)',outline:'none' }}>
+              <select value={signalReason} onChange={e => setSignalReason(e.target.value)} style={{ width:'100%',background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:8,padding:'10px 13px',fontSize:14,color:'var(--text)',outline:'none' }}>
                 <option>Arnaque / Faux produit</option>
                 <option>Prix abusif</option>
                 <option>Annonce en double</option>
@@ -91,7 +79,15 @@ export default function AnnonceDetail() {
                 <option>Autre</option>
               </select>
             </div>
-            <button className="btn btn-danger btn-block" onClick={() => { showToast('ok', 'Signalement envoyé.'); setShowSignal(false) }}>
+            <button className="btn btn-danger btn-block" onClick={async () => {
+              if (!user) { setShowSignal(false); setShowAuth(true); return }
+              const { error } = await supabase.from('signalements').insert({
+                annonce_id: ann.id, annonce_titre: ann.titre, raison: signalReason, reporter_id: user.id
+              })
+              if (error) showToast('err', "Échec de l'envoi du signalement.")
+              else showToast('ok', 'Signalement envoyé. Merci !')
+              setShowSignal(false)
+            }}>
               Envoyer le signalement
             </button>
           </div>
@@ -160,6 +156,7 @@ export default function AnnonceDetail() {
           </div>
           <div style={{ display:'flex',gap:10,flexWrap:'wrap' }}>
             {isOwner && <button className="btn btn-danger" onClick={deleteAnn}><i className="ti ti-trash"></i>Supprimer</button>}
+            {!isOwner && isAdmin && <button className="btn btn-danger" onClick={deleteAnn}><i className="ti ti-shield-x"></i>Supprimer (admin)</button>}
             {!isOwner && <button style={{ background:'none',border:'none',color:'var(--text3)',fontSize:12,display:'flex',alignItems:'center',gap:5,cursor:'pointer' }} onClick={() => setShowSignal(true)}><i className="ti ti-flag"></i>Signaler</button>}
           </div>
         </div>
@@ -200,33 +197,6 @@ export default function AnnonceDetail() {
               Voir le profil complet
             </button>
           </div>
-
-          {/* TRANSACTION */}
-          {!isOwner && user && (
-            <div style={{ background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:10,padding:18,marginBottom:16 }}>
-              <div style={{ fontFamily:'var(--fh)',fontSize:14,fontWeight:600,marginBottom:12,display:'flex',alignItems:'center',gap:7,color:'var(--text)' }}>
-                <i className="ti ti-shopping-bag" style={{ color:'var(--g)' }}></i>Transaction
-              </div>
-              {tx?.status === 'confirmed' ? (
-                <div style={{ textAlign:'center' }}>
-                  <div style={{ color:'var(--g)',fontSize:13,fontWeight:600,marginBottom:10,display:'flex',alignItems:'center',justifyContent:'center',gap:6 }}><i className="ti ti-circle-check"></i> Transaction confirmée</div>
-                  <button className="btn btn-acc btn-block" onClick={() => navigate(`/profil/${ann.user_id}`)}>Laisser un avis au vendeur</button>
-                </div>
-              ) : tx?.buyer_confirmed ? (
-                <div style={{ fontSize:13,color:'var(--text2)',display:'flex',alignItems:'center',gap:7 }}>
-                  <i className="ti ti-clock" style={{ color:'var(--amber)' }}></i>En attente de la confirmation du vendeur.
-                </div>
-              ) : (
-                <>
-                  {tx?.seller_confirmed && <div style={{ fontSize:12,color:'var(--text3)',marginBottom:10 }}>Le vendeur a marqué cette vente. Confirmez de votre côté pour la valider.</div>}
-                  <button className="btn btn-acc btn-block" onClick={confirmTx} disabled={txLoading}>
-                    <i className="ti ti-check"></i>{tx?.seller_confirmed ? 'Confirmer mon achat' : "J'ai acheté cet article"}
-                  </button>
-                  <div style={{ fontSize:11,color:'var(--text3)',marginTop:8,textAlign:'center' }}>La vente est validée quand vous et le vendeur confirmez tous les deux.</div>
-                </>
-              )}
-            </div>
-          )}
 
           {/* CONTACT */}
           {!isOwner && (
