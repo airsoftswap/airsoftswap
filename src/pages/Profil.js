@@ -11,9 +11,11 @@ export default function Profil() {
   const [avis, setAvis] = useState([]); const [tab, setTab] = useState('ann')
   const [loading, setLoading] = useState(true)
   const [showAvisList, setShowAvisList] = useState(false)
-  const [showMsg, setShowMsg] = useState(false); const [msgText, setMsgText] = useState(''); const [sendingMsg, setSendingMsg] = useState(false)
+  const [showMsg, setShowMsg] = useState(false); const [msgText, setMsgText] = useState(''); const [sendingMsg, setSendingMsg] = useState(false); const [msgErr, setMsgErr] = useState('')
   const [uploadingAv, setUploadingAv] = useState(false)
   const [favAnnonces, setFavAnnonces] = useState([])
+  const [recentAct, setRecentAct] = useState([]); const [tempsRep, setTempsRep] = useState(null); const [vues, setVues] = useState(0)
+  const [editingBio, setEditingBio] = useState(false); const [bioText, setBioText] = useState(''); const [savingBio, setSavingBio] = useState(false)
   const fileAvRef = useRef(null)
   const isMe = user?.id === id
   useEffect(() => { load() }, [id, user])
@@ -23,21 +25,55 @@ export default function Profil() {
     } else { setFavAnnonces([]) }
   }, [isMe, favs])
   const load = async () => {
-    const [{ data:p },{ data:a },{ data:av }] = await Promise.all([
+    const [{ data:p },{ data:a },{ data:av },{ data:tx }] = await Promise.all([
       supabase.from('profiles').select('*').eq('id',id).single(),
       supabase.from('annonces').select('*').eq('user_id',id).order('created_at',{ascending:false}),
       supabase.from('avis').select('*,auteur:auteur_id(username)').eq('cible_id',id).order('created_at',{ascending:false}),
+      supabase.from('transactions').select('annonce_id,confirmed_at').eq('seller_id',id).eq('status','confirmed').order('confirmed_at',{ascending:false}),
     ])
-    setProfile(p); setAnnonces(a||[]); setAvis(av||[])
+    setProfile(p); setAnnonces(a||[]); setAvis(av||[]); setVues(p?.vues_mois||0)
+    // Activité récente : ventes, dépôts d'annonce, avis reçus
+    const acts = []
+    ;(tx||[]).forEach(t => acts.push({ type:'vente', date:t.confirmed_at, label:'Vente réalisée' }))
+    ;(a||[]).forEach(an => acts.push({ type:'annonce', date:an.created_at, label:'Annonce publiée', detail:an.titre }))
+    ;(av||[]).forEach(v => acts.push({ type:'avis', date:v.created_at, label:'Nouvel avis reçu', detail:`Évaluation ${v.note} étoile${v.note>1?'s':''}` }))
+    acts.sort((x,y)=> new Date(y.date) - new Date(x.date))
+    setRecentAct(acts.filter(x=>x.date).slice(0,5))
     setLoading(false)
+    computeResponseTime()
+    if (user && user.id !== id) supabase.rpc('increment_profile_view', { p_id: id })
+  }
+  const computeResponseTime = async () => {
+    const { data: msgs } = await supabase.from('messages').select('sender_id,receiver_id,annonce_id,created_at').or(`sender_id.eq.${id},receiver_id.eq.${id}`).order('created_at',{ascending:true}).limit(400)
+    if (!msgs || !msgs.length) { setTempsRep(null); return }
+    const convs = {}
+    msgs.forEach(m => { const other = m.sender_id===id ? m.receiver_id : m.sender_id; const key = `${other}_${m.annonce_id}`; (convs[key]=convs[key]||[]).push(m) })
+    const delays = []
+    Object.values(convs).forEach(list => {
+      let pending = null
+      list.forEach(m => {
+        if (m.receiver_id===id) { if (pending===null) pending = new Date(m.created_at).getTime() }
+        else if (m.sender_id===id && pending!==null) { delays.push(new Date(m.created_at).getTime()-pending); pending=null }
+      })
+    })
+    if (!delays.length) { setTempsRep(null); return }
+    setTempsRep(delays.reduce((s,d)=>s+d,0)/delays.length)
+  }
+  const saveBio = async () => {
+    setSavingBio(true)
+    const { error } = await supabase.from('profiles').update({ bio: bioText.trim() }).eq('id', user.id)
+    setSavingBio(false)
+    if (error) { showToast('err','Erreur : '+error.message); return }
+    setProfile(p => ({ ...p, bio: bioText.trim() })); setEditingBio(false); showToast('ok','Description mise à jour !')
   }
   const sendMsg = async () => {
+    setMsgErr('')
     if (!user) { showToast('err','Connectez-vous pour envoyer un message.'); return }
     if (!msgText.trim()) return
     setSendingMsg(true)
     const { error } = await supabase.from('messages').insert({ sender_id:user.id, receiver_id:id, annonce_id:null, contenu:msgText.trim() })
     setSendingMsg(false)
-    if (error) { showToast('err',"Erreur lors de l'envoi."); return }
+    if (error) { setMsgErr('Erreur : ' + (error.message || 'envoi impossible')); return }
     setShowMsg(false); setMsgText(''); showToast('ok','Message envoyé !'); navigate('/messagerie')
   }
   const changeAvatar = async e => {
@@ -60,6 +96,10 @@ export default function Profil() {
   if (!profile) return <div className="empty"><i className="ti ti-ghost"></i><p>Profil introuvable.</p></div>
   const since = new Date(profile.created_at).toLocaleDateString('fr-FR',{year:'numeric',month:'long'})
   const avg = avis.length>0?(avis.reduce((s,a)=>s+a.note,0)/avis.length).toFixed(1):null
+  const pctPositifs = avis.length>0 ? Math.round(avis.filter(a=>a.note>=4).length/avis.length*100) : null
+  const fmtRep = (ms) => { if(ms==null) return '—'; const min=ms/60000; if(min<60) return `${Math.max(1,Math.round(min))} min`; const h=min/60; if(h<24) return `${Math.round(h)} h`; return `${Math.round(h/24)} j` }
+  const actIcon = { vente:{i:'ti-circle-check',c:'var(--g)'}, annonce:{i:'ti-file-text',c:'var(--text2)'}, avis:{i:'ti-star',c:'var(--amber)'} }
+  const timeAgo = (d) => { const days=Math.floor((Date.now()-new Date(d).getTime())/86400000); if(days<=0) return "aujourd'hui"; if(days===1) return 'hier'; if(days<7) return `il y a ${days} jours`; if(days<30) return `il y a ${Math.floor(days/7)} sem.`; return `il y a ${Math.floor(days/30)} mois` }
   return (
     <div>
       {showMsg && (
@@ -69,6 +109,7 @@ export default function Profil() {
             <div className="modal-title">Envoyer un message</div>
             <div className="modal-sub">À {profile.username}</div>
             <div className="form-group"><label>Votre message</label><textarea value={msgText} onChange={e=>setMsgText(e.target.value)} placeholder="Bonjour, ..."></textarea></div>
+            {msgErr && <div style={{background:'rgba(217,64,64,.12)',border:'1px solid rgba(217,64,64,.4)',color:'var(--red)',borderRadius:8,padding:'9px 12px',fontSize:12,marginBottom:10}}>{msgErr}</div>}
             <button className="btn btn-acc btn-block" disabled={sendingMsg||!msgText.trim()} onClick={sendMsg}>{sendingMsg?'Envoi...':'Envoyer'}</button>
           </div>
         </div>
@@ -100,7 +141,7 @@ export default function Profil() {
         </div>
       )}
       <div style={{background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:14,overflow:'hidden',marginBottom:16}}>
-        <div style={{height:88,background:'linear-gradient(120deg, var(--gs), var(--bg2)), repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(127,160,64,.04) 10px, rgba(127,160,64,.04) 20px)',borderBottom:'1px solid var(--border)'}}></div>
+        <div style={{height:140,background:'linear-gradient(rgba(10,11,9,.35), rgba(10,11,9,.75)), url(/hero.jpg)',backgroundSize:'cover',backgroundPosition:'center',borderBottom:'1px solid var(--border)'}}></div>
         <div style={{padding:'0 20px 20px',textAlign:'center'}}>
           <div style={{position:'relative',width:92,height:92,margin:'-46px auto 12px'}}>
             <div style={{width:92,height:92,borderRadius:'50%',background:'var(--bg3)',border:'3px solid var(--bg2)',boxShadow:'0 0 0 2px var(--g)',overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'Barlow Condensed',sans-serif",fontSize:31,fontWeight:800,color:'var(--g)'}}>
@@ -127,19 +168,83 @@ export default function Profil() {
           <button onClick={()=>setShowAvisList(true)} style={{display:'inline-flex',alignItems:'center',gap:7,background:'var(--bg3)',border:'1px solid var(--border2)',borderRadius:8,padding:'7px 14px',cursor:'pointer',color:'var(--amber)',fontSize:14}}>
             {avg ? <>{'★'.repeat(Math.round(avg))}{'☆'.repeat(5-Math.round(avg))} <span style={{fontWeight:700}}>{avg}</span> <span style={{color:'var(--text3)',fontSize:12}}>· {avis.length} avis →</span></> : <span style={{color:'var(--text3)',fontSize:13}}>Aucun avis pour le moment →</span>}
           </button>
-          <div style={{display:'flex',justifyContent:'center',borderTop:'1px solid var(--border)',marginTop:16,paddingTop:14}}>
-            {[{v:annonces.length,l:isMe?'Mes annonces':'Annonces',c:'var(--g)'},{v:profile.nb_ventes||0,l:'Ventes'},{v:avg||'—',l:'Note'}].map((s,i,arr)=>(
-              <React.Fragment key={i}>
-                <div style={{flex:1,textAlign:'center'}}>
-                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:23,fontWeight:800,color:s.c||'var(--text)',lineHeight:1}}>{s.v}</div>
-                  <div style={{fontSize:11,color:'var(--text3)',marginTop:3}}>{s.l}</div>
+          {!isMe && user && (
+            <button className="btn btn-acc" style={{width:'100%',justifyContent:'center',padding:'13px',fontSize:14,marginTop:16}} onClick={()=>setShowMsg(true)}>
+              <i className="ti ti-mail"></i> Envoyer un message
+            </button>
+          )}
+          {/* DESCRIPTION (modifiable par le membre uniquement) */}
+          {(profile.bio || isMe) && (
+            <div style={{background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:10,padding:'14px 18px',marginTop:14,textAlign:'left',position:'relative'}}>
+              {editingBio ? (
+                <>
+                  <textarea value={bioText} onChange={e=>setBioText(e.target.value)} maxLength={250} placeholder="Présente-toi en quelques mots (spécialité, délais d'envoi...)" style={{width:'100%',background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:8,padding:'9px 12px',fontSize:13,color:'var(--text)',outline:'none',resize:'vertical',minHeight:64,fontFamily:'inherit'}}></textarea>
+                  <div style={{display:'flex',gap:8,marginTop:8}}>
+                    <button className="btn btn-acc" style={{fontSize:12,padding:'7px 14px'}} disabled={savingBio} onClick={saveBio}>{savingBio?'...':'Enregistrer'}</button>
+                    <button className="btn btn-out" style={{fontSize:12,padding:'7px 14px'}} onClick={()=>setEditingBio(false)}>Annuler</button>
+                  </div>
+                </>
+              ) : profile.bio ? (
+                <div style={{display:'flex',gap:10}}>
+                  <i className="ti ti-quote" style={{fontSize:18,color:'var(--g)',flexShrink:0}}></i>
+                  <div style={{fontSize:13,color:'var(--text2)',lineHeight:1.5,whiteSpace:'pre-line',flex:1}}>{profile.bio}</div>
+                  {isMe && <button onClick={()=>{setBioText(profile.bio||'');setEditingBio(true)}} title="Modifier" style={{background:'none',border:'none',color:'var(--text3)',cursor:'pointer',fontSize:15,flexShrink:0}}><i className="ti ti-pencil"></i></button>}
                 </div>
-                {i<arr.length-1 && <div style={{width:1,background:'var(--border)',margin:'2px 0'}}></div>}
-              </React.Fragment>
+              ) : (
+                <button onClick={()=>{setBioText('');setEditingBio(true)}} style={{background:'none',border:'1px dashed var(--border2)',borderRadius:8,padding:'8px 14px',color:'var(--text3)',cursor:'pointer',fontSize:13,width:'100%',display:'flex',alignItems:'center',justifyContent:'center',gap:6}}>
+                  <i className="ti ti-plus"></i> Ajouter une description
+                </button>
+              )}
+            </div>
+          )}
+          {/* CARTES STATS */}
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(112px,1fr))',gap:10,marginTop:18,textAlign:'left'}}>
+            {[
+              {ic:'ti-file-text',v:annonces.length,l:'Annonces',s:'en ligne'},
+              {ic:'ti-shopping-cart',v:profile.nb_ventes||0,l:'Ventes',s:'réalisées'},
+              {ic:'ti-eye',v:vues,l:'Vues profil',s:'ce mois-ci'},
+              {ic:'ti-bolt',v:fmtRep(tempsRep),l:'Temps de réponse',s:'moyen'},
+              {ic:'ti-thumb-up',v:pctPositifs!=null?`${pctPositifs}%`:'—',l:'Avis positifs',s:`${avis.length} avis`},
+            ].map((s,i)=>(
+              <div key={i} style={{background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:10,padding:'14px 12px',display:'flex',alignItems:'center',gap:10,minWidth:0}}>
+                <i className={`ti ${s.ic}`} style={{fontSize:24,color:'#A3E635',flexShrink:0}}></i>
+                <div style={{minWidth:0}}>
+                  <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:800,color:'var(--text)',lineHeight:1}}>{s.v}</div>
+                  <div style={{fontSize:11,color:'var(--text2)',fontWeight:600,marginTop:2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{s.l}</div>
+                  <div style={{fontSize:10,color:'var(--text3)'}}>{s.s}</div>
+                </div>
+              </div>
             ))}
           </div>
+          {/* BADGE COMPTE VÉRIFIÉ */}
+          <div style={{display:'flex',alignItems:'center',gap:14,background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:10,padding:'14px 18px',marginTop:12,textAlign:'left'}}>
+            <i className="ti ti-shield-check" style={{fontSize:30,color:'#A3E635',flexShrink:0}}></i>
+            <div>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:800,textTransform:'uppercase',letterSpacing:'.5px',color:'var(--g)'}}>Vendeur confirmé</div>
+              <div style={{fontSize:12,color:'var(--text2)'}}>Compte vérifié</div>
+            </div>
+          </div>
+          {/* ACTIVITÉ RÉCENTE */}
+          {recentAct.length>0 && (
+            <div style={{background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:10,padding:'16px 18px',marginTop:12,textAlign:'left'}}>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:14,fontWeight:700,textTransform:'uppercase',letterSpacing:'.5px',color:'var(--text)',marginBottom:12,display:'flex',alignItems:'center',gap:8}}>
+                <span style={{width:3,height:16,background:'var(--g)',borderRadius:2,display:'inline-block'}}></span> Activité récente
+              </div>
+              <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                {recentAct.map((a,i)=>(
+                  <div key={i} style={{display:'flex',alignItems:'center',gap:12}}>
+                    <i className={`ti ${actIcon[a.type].i}`} style={{fontSize:20,color:actIcon[a.type].c,flexShrink:0}}></i>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:13,fontWeight:600,color:'var(--text)'}}>{a.label}</div>
+                      {a.detail && <div style={{fontSize:12,color:'var(--text3)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{a.detail}</div>}
+                    </div>
+                    <div style={{fontSize:11,color:'var(--text3)',whiteSpace:'nowrap'}}>{timeAgo(a.date)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <div style={{display:'flex',gap:8,justifyContent:'center',alignItems:'center',flexWrap:'wrap',marginTop:16}}>
-            {!isMe && user && <button className="btn btn-out" style={{fontSize:12,padding:'8px 16px'}} onClick={()=>setShowMsg(true)}><i className="ti ti-mail"></i> Envoyer un message</button>}
             {isMe && <button className="btn btn-out" style={{fontSize:12,padding:'8px 16px'}} onClick={logout}><i className="ti ti-logout"></i> Déconnexion</button>}
           </div>
         </div>

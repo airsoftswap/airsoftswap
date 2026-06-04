@@ -89,51 +89,46 @@ function ProfilPopup({ user, onClose, navigate }) {
       <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden', width: '100%', maxWidth: 340, position: 'relative' }} onClick={e => e.stopPropagation()}>
         {/* Barre verte en haut */}
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(90deg, var(--g), transparent)' }}></div>
-        {/* Header */}
-        <div style={{ padding: '20px 20px 16px', display: 'flex', gap: 14, alignItems: 'flex-start', borderBottom: '1px solid var(--border)' }}>
-          <div style={{ width: 64, height: 64, borderRadius: 12, background: 'var(--gs)', border: '2px solid var(--gg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 800, color: 'var(--g)', fontFamily: 'var(--fh)', flexShrink: 0, overflow: 'hidden' }}>
-            {user.avatar_url
-              ? <img src={user.avatar_url} alt={user.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : (user.username?.slice(0, 2).toUpperCase() || '??')}
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontFamily: 'var(--fh)', fontSize: 20, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '-.3px', marginBottom: 5, color: 'var(--text)' }}>{user.username}</div>
-            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 6 }}>
-              <span style={{ background: 'var(--gs)', border: '1px solid var(--gg)', color: 'var(--g)', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, fontFamily: 'var(--fh)', textTransform: 'uppercase', letterSpacing: '.5px' }}>✓ Vérifié</span>
-              {user.nb_ventes >= 10 && <span style={{ background: 'rgba(200,150,42,.12)', border: '1px solid rgba(200,150,42,.3)', color: 'var(--amber)', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, fontFamily: 'var(--fh)', textTransform: 'uppercase', letterSpacing: '.5px' }}>⭐ Top vendeur</span>}
+        <div style={{ padding: '22px 20px 18px' }}>
+          <div style={{ display: 'flex', gap: 13, alignItems: 'center', marginBottom: 14 }}>
+            <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--gs)', border: '2px solid var(--g)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 19, fontWeight: 800, color: 'var(--g)', fontFamily: 'var(--fh)', flexShrink: 0, overflow: 'hidden' }}>
+              {user.avatar_url
+                ? <img src={user.avatar_url} alt={user.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : (user.username?.slice(0, 2).toUpperCase() || '??')}
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text3)', marginBottom: 6 }}>
-              <span style={{ color: 'var(--amber)', fontSize: 13 }}>{'★'.repeat(Math.round(user.note_moyenne || 0))}</span>
-              <span>{user.note_moyenne ? Number(user.note_moyenne).toFixed(1) : '—'} <span style={{ color: 'var(--text3)' }}>({user.nb_avis || 0} avis)</span></span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--text3)' }}>
-              <i className="ti ti-calendar" style={{ fontSize: 13 }}></i>
-              Membre depuis {user.since ? new Date(user.since).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : '—'}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontFamily: 'var(--fh)', fontSize: 19, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '-.3px', color: 'var(--text)' }}>{user.username}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>
+                <i className="ti ti-calendar" style={{ fontSize: 12 }}></i>
+                Membre depuis {user.since ? new Date(user.since).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : '—'}
+              </div>
             </div>
           </div>
-        </div>
-        {/* Stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', borderBottom: '1px solid var(--border)' }}>
-          {[
-            { v: user.nb_annonces || 0, l: 'Annonces' },
-            { v: user.nb_ventes || 0, l: 'Ventes' },
-          ].map((s, i) => (
-            <div key={i} style={{ padding: '12px 8px', textAlign: 'center', borderRight: i < 1 ? '1px solid var(--border)' : 'none' }}>
-              <div style={{ fontFamily: 'var(--fh)', fontSize: 22, fontWeight: 800, color: 'var(--g)', lineHeight: 1 }}>{s.v}</div>
-              <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 3, textTransform: 'uppercase', letterSpacing: '.5px' }}>{s.l}</div>
+          <div style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 9, padding: '10px', textAlign: 'center', marginBottom: 10 }}>
+            {user.note_moyenne > 0 ? (
+              <>
+                <div style={{ color: 'var(--amber)', fontSize: 16, letterSpacing: 1 }}>{'★'.repeat(Math.round(user.note_moyenne))}{'☆'.repeat(5 - Math.round(user.note_moyenne))}</div>
+                <div style={{ fontSize: 13, marginTop: 2 }}><b>{Number(user.note_moyenne).toFixed(1)}</b></div>
+              </>
+            ) : <div style={{ color: 'var(--text3)', fontSize: 13 }}>Nouveau vendeur</div>}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px', marginBottom: 14 }}>
+            <i className="ti ti-shield-check" style={{ fontSize: 22, color: '#A3E635', flexShrink: 0 }}></i>
+            <div>
+              <div style={{ fontFamily: 'var(--fh)', fontSize: 13, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.5px', color: '#A3E635' }}>Vendeur confirmé</div>
+              <div style={{ fontSize: 11, color: 'var(--text3)' }}>{user.nb_ventes || 0} vente{(user.nb_ventes || 0) > 1 ? 's' : ''} réalisée{(user.nb_ventes || 0) > 1 ? 's' : ''}</div>
             </div>
-          ))}
-        </div>
-        {/* Boutons */}
-        <div style={{ padding: '14px 16px', display: 'flex', gap: 8 }}>
-          <button onClick={() => { if (user.id) { navigate(`/profil/${user.id}`); onClose() } }}
-            style={{ flex: 2, padding: '10px', background: 'var(--g)', color: '#fff', border: 'none', borderRadius: 8, fontFamily: 'var(--fh)', fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.5px', cursor: 'pointer' }}>
-            Voir le profil
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => { if (user.id) { navigate(`/profil/${user.id}`); onClose() } }}
+              style={{ flex: 2, padding: '11px', background: 'var(--g)', color: '#fff', border: 'none', borderRadius: 8, fontFamily: 'var(--fh)', fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.5px', cursor: 'pointer' }}>
+              Voir le profil
+            </button>
+            <button onClick={onClose}
+              style={{ flex: 1, padding: '10px', background: 'transparent', color: 'var(--text2)', border: '1px solid var(--border2)', borderRadius: 8, fontFamily: 'var(--fh)', fontSize: 13, fontWeight: 600, textTransform: 'uppercase', cursor: 'pointer' }}>
+              Fermer
           </button>
-          <button onClick={onClose}
-            style={{ flex: 1, padding: '9px', background: 'transparent', color: 'var(--text2)', border: '1px solid var(--border2)', borderRadius: 8, fontFamily: 'var(--fh)', fontSize: 13, fontWeight: 600, textTransform: 'uppercase', cursor: 'pointer' }}>
-            Fermer
-          </button>
+          </div>
         </div>
       </div>
     </div>
@@ -148,20 +143,27 @@ export default function Home() {
   const [catCounts, setCatCounts] = useState({})
   const [loading, setLoading] = useState(true)
   const [popupUser, setPopupUser] = useState(null)
+  const [soldAnn, setSoldAnn] = useState([])
 
   useEffect(() => { load() }, [])
 
-  const activity = annonces.slice(0, 5).map(a => ({
+  const mapAct = (a, sale) => ({
     user: a.profiles?.username || 'Anonyme',
-    action: `a publié « ${a.titre} »`,
-    time: timeAgo(a.created_at),
+    action: sale ? `a vendu « ${a.titre} »` : `a publié « ${a.titre} »`,
+    sale: !!sale,
+    ts: sale ? a.sold_at : a.created_at,
+    time: timeAgo(sale ? a.sold_at : a.created_at),
     avatar: a.profiles?.avatar_url,
     note: a.profiles?.note_moyenne || 0,
     uid: a.profiles?.id,
     nb_ventes: a.profiles?.nb_ventes || 0,
     since: a.profiles?.created_at,
     annonceId: a.id,
-  }))
+  })
+  const activity = [
+    ...annonces.map(a => mapAct(a, false)),
+    ...soldAnn.map(a => mapAct(a, true)),
+  ].sort((x, y) => new Date(y.ts) - new Date(x.ts)).slice(0, 6)
 
   const openUser = (a) => setPopupUser({
     id: a.uid,
@@ -175,14 +177,16 @@ export default function Home() {
   })
 
   const load = async () => {
-    const [{ data: ann }, { count: ac }, { count: mc }, venteRes] = await Promise.all([
+    const [{ data: ann }, { count: ac }, { count: mc }, venteRes, { data: sold }] = await Promise.all([
       supabase.from('annonces').select('*, profiles(id, username, note_moyenne, avatar_url, nb_ventes, created_at)').order('created_at', { ascending: false }).limit(8),
       supabase.from('annonces').select('*', { count: 'exact', head: true }),
       supabase.from('profiles').select('*', { count: 'exact', head: true }),
       supabase.from('profiles').select('nb_ventes'),
+      supabase.from('annonces').select('*, profiles(id, username, note_moyenne, avatar_url, nb_ventes, created_at)').not('sold_at', 'is', null).order('sold_at', { ascending: false }).limit(6),
     ])
     const totalVentes = venteRes.data?.reduce((s, p) => s + (p.nb_ventes || 0), 0) || 0
     setAnnonces(ann || [])
+    setSoldAnn(sold || [])
     setStats({ ann: ac || 0, mem: mc || 0, ventes: totalVentes })
     const cats = ['AEG', 'GBB', 'Sniper', 'Équipement', 'Accessoire', 'Pièces']
     const counts = {}
@@ -231,14 +235,17 @@ export default function Home() {
       {/* STATS */}
       <div className="stats-bar">
         {[
-          { val: <CountUp to={stats.mem} />, lab: 'Membres' },
-          { val: <CountUp to={stats.ann} />, lab: 'Annonces en ligne' },
-          { val: <CountUp to={stats.ventes} />, lab: 'Ventes réussies' },
-          { val: <>100<span className="acc">%</span></>, lab: 'Gratuit' },
+          { val: <CountUp to={stats.mem} />, lab: 'Membres', ic: 'ti-users' },
+          { val: <CountUp to={stats.ann} />, lab: 'Annonces en ligne', ic: 'ti-tag' },
+          { val: <CountUp to={stats.ventes} />, lab: 'Ventes réussies', ic: 'ti-circle-check' },
+          { val: <>100<span className="acc">%</span></>, lab: 'Gratuit', ic: 'ti-gift' },
         ].map((s, i) => (
           <div key={i} className="stat">
-            <div className="stat-val">{s.val}</div>
-            <div className="stat-lab">{s.lab}</div>
+            <div className="stat-ico"><i className={`ti ${s.ic}`} style={{ fontSize: 21, color: '#A3E635' }}></i></div>
+            <div>
+              <div className="stat-val">{s.val}</div>
+              <div className="stat-lab">{s.lab}</div>
+            </div>
           </div>
         ))}
       </div>
@@ -285,55 +292,62 @@ export default function Home() {
       {/* POPUP PROFIL */}
       {popupUser && <ProfilPopup user={popupUser} onClose={() => setPopupUser(null)} navigate={navigate} />}
 
-      {/* ACTIVITE + WHY */}
+      {/* ACTIVITE */}
       <div className="section">
-        <div className="two-col">
-          <div>
-            <div className="sec-title" style={{ marginBottom: 16 }}>Activité récente</div>
-            <div>
-              {activity.length === 0 && (
-                <div style={{ fontSize: 13, color: 'var(--text3)', padding: '8px 0' }}>Aucune activité récente pour le moment.</div>
-              )}
-              {activity.map((a, i) => (
-                <div key={i} className="act-item">
-                  <div className="act-av" style={{ cursor: 'pointer', overflow: 'hidden' }}
-                    onClick={() => openUser(a)}>
-                    {a.avatar ? <img src={a.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : a.user.slice(0, 2).toUpperCase()}
-                  </div>
-                  <div className="act-text">
-                    <strong style={{ cursor: 'pointer', color: 'var(--g)' }}
-                      onClick={() => openUser(a)}>
-                      {a.user}
-                    </strong> {a.action}
-                  </div>
-                  {i === 0 && <div className="act-live"></div>}
-                  <div className="act-time">{a.time}</div>
-                </div>
-              ))}
+        <div className="sec-title" style={{ marginBottom: 16 }}>Activité récente</div>
+        <div>
+          {activity.length === 0 && (
+            <div style={{ fontSize: 13, color: 'var(--text3)', padding: '8px 0' }}>Aucune activité récente pour le moment.</div>
+          )}
+          {activity.map((a, i) => (
+            <div key={i} className="act-item">
+              <div className="act-av" style={{ cursor: 'pointer', overflow: 'hidden' }}
+                onClick={() => openUser(a)}>
+                {a.avatar ? <img src={a.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : a.user.slice(0, 2).toUpperCase()}
+              </div>
+              <div className="act-text">
+                <i className={`ti ${a.sale ? 'ti-circle-check' : 'ti-tag'}`} style={{ color: a.sale ? '#A3E635' : 'var(--text3)', marginRight: 6 }}></i>
+                <strong style={{ cursor: 'pointer', color: 'var(--g)' }}
+                  onClick={() => openUser(a)}>
+                  {a.user}
+                </strong> {a.action}
+              </div>
+              {i === 0 && <div className="act-live"></div>}
+              <div className="act-time">{a.time}</div>
             </div>
-          </div>
-          <div>
-            <div className="sec-title" style={{ marginBottom: 16 }}>Pourquoi AirsoftSwap ?</div>
-            <div className="why-grid">
-              <div className="why-card"><div className="why-ico">🎯</div><div className="why-title">100% Airsoft</div><div className="why-desc">Par des passionnés, pour des passionnés.</div></div>
-              <div className="why-card"><div className="why-ico">🤝</div><div className="why-title">Entre particuliers</div><div className="why-desc">Vendez directement sans intermédiaire.</div></div>
-              <div className="why-card"><div className="why-ico">🔒</div><div className="why-title">Comptes vérifiés</div><div className="why-desc">Email confirmé avant de publier.</div></div>
-              <div className="why-card"><div className="why-ico">⚡</div><div className="why-title">Rapide & gratuit</div><div className="why-desc">Une annonce en 2 minutes. Zéro frais.</div></div>
+          ))}
+        </div>
+      </div>
+
+      {/* POURQUOI — Modèle A */}
+      <div className="section">
+        <div className="sec-title" style={{ marginBottom: 16 }}>Pourquoi AirsoftSwap ?</div>
+        <div className="why-grid">
+          {[
+            { ic: 'ti-target', t: '100% Airsoft', d: 'Par des passionnés, pour des passionnés.' },
+            { ic: 'ti-users', t: 'Entre particuliers', d: 'Vendez directement sans intermédiaire.' },
+            { ic: 'ti-shield-check', t: 'Comptes vérifiés', d: 'Email confirmé avant de publier.' },
+            { ic: 'ti-bolt', t: 'Rapide & gratuit', d: 'Une annonce en 2 minutes. Zéro frais.' },
+          ].map((w, i) => (
+            <div key={i} className="why-card">
+              <div className="why-ico"><i className={`ti ${w.ic}`} style={{ fontSize: 23, color: '#A3E635' }}></i></div>
+              <div className="why-title">{w.t}</div>
+              <div className="why-desc">{w.d}</div>
             </div>
-            <div className="trust-box">
-              {[
-                ['Email vérifié', 'obligatoire pour publier'],
-                ['Avis authentiques', 'après transaction confirmée uniquement'],
-                ['Signalement', 'en 1 clic — traité sous 24h'],
-                ['RGPD', 'données protégées'],
-              ].map(([t, s], i) => (
-                <div key={i} className="trust-item">
-                  <div className="trust-chk">✓</div>
-                  <div className="trust-text"><strong>{t}</strong> {s}</div>
-                </div>
-              ))}
+          ))}
+        </div>
+        <div className="trust-box">
+          {[
+            ['Email vérifié', 'obligatoire pour publier'],
+            ['Avis authentiques', 'après transaction confirmée'],
+            ['Signalement', 'en 1 clic — traité sous 24h'],
+            ['RGPD', 'données protégées'],
+          ].map(([t, s], i) => (
+            <div key={i} className="trust-item">
+              <div className="trust-ico"><i className="ti ti-check"></i></div>
+              <div className="trust-txt"><strong>{t}</strong> {s}</div>
             </div>
-          </div>
+          ))}
         </div>
       </div>
     </div>

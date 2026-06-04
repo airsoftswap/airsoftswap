@@ -18,14 +18,21 @@ export default function AnnonceDetail() {
   const [showSignal, setShowSignal] = useState(false)
   const [activePhoto, setActivePhoto] = useState(0)
   const [signalReason, setSignalReason] = useState('Arnaque / Faux produit')
+  const [sellerAvis, setSellerAvis] = useState(0)
+  const [sellerPct, setSellerPct] = useState(null)
 
   useEffect(() => { load() }, [id, user])
 
   const load = async () => {
     const { data } = await supabase.from('annonces')
-      .select('*, profiles(id,username,note_moyenne,nb_ventes,created_at,ville)')
+      .select('*, profiles(id,username,note_moyenne,nb_ventes,created_at,ville,avatar_url)')
       .eq('id', id).single()
     setAnn(data); setLoading(false)
+    if (data?.user_id) {
+      const { data: avd } = await supabase.from('avis').select('note').eq('cible_id', data.user_id)
+      setSellerAvis(avd?.length || 0)
+      setSellerPct(avd && avd.length ? Math.round(avd.filter(a=>a.note>=4).length/avd.length*100) : null)
+    }
   }
 
   const sendMsg = async () => {
@@ -36,7 +43,7 @@ export default function AnnonceDetail() {
       sender_id: user.id, receiver_id: ann.user_id, annonce_id: ann.id, contenu: msg.trim()
     })
     if (!error) { setMsgSent(true); setMsg(''); showToast('ok', 'Message envoyé !') }
-    else showToast('err', 'Erreur lors de l\'envoi.')
+    else showToast('err', 'Erreur : ' + error.message)
     setSending(false)
   }
 
@@ -59,7 +66,7 @@ export default function AnnonceDetail() {
   const isOwner = user?.id === ann.user_id
   const isAdmin = user?.id === 'e21bb865-90d4-4995-88f5-1b6bf1a324a1' || user?.email === 'gamerscss@yahoo.fr'
   const isFav = favs.includes(ann.id)
-  const memberYear = ann.profiles?.created_at ? new Date(ann.profiles.created_at).getFullYear() : '?'
+  const memberYear = ann.profiles?.created_at ? new Date(ann.profiles.created_at).toLocaleDateString('fr-FR',{month:'long',year:'numeric'}) : '?'
   const hasPhotos = ann.images && ann.images.length > 0
 
   return (
@@ -112,6 +119,12 @@ export default function AnnonceDetail() {
             <button className={`fav-btn ${isFav ? 'on' : ''}`} style={{ position:'absolute',top:10,right:10 }} onClick={() => toggleFav(ann.id)}>
               <i className={`ti ${isFav?'ti-heart-filled':'ti-heart'}`} style={{ fontSize:14,color:isFav?'var(--red)':'var(--text3)' }}></i>
             </button>
+            {!isOwner && (
+              <button onClick={() => setShowSignal(true)} title="Signaler cette annonce"
+                style={{ position:'absolute',top:10,left:10,background:'rgba(217,64,64,.15)',border:'1px solid rgba(217,64,64,.5)',color:'var(--red)',fontSize:12,fontWeight:700,padding:'7px 12px',borderRadius:8,cursor:'pointer',display:'flex',alignItems:'center',gap:5 }}>
+                <i className="ti ti-flag"></i> Signaler
+              </button>
+            )}
           </div>
 
           {/* THUMBNAILS */}
@@ -157,43 +170,46 @@ export default function AnnonceDetail() {
           <div style={{ display:'flex',gap:10,flexWrap:'wrap' }}>
             {isOwner && <button className="btn btn-danger" onClick={deleteAnn}><i className="ti ti-trash"></i>Supprimer</button>}
             {!isOwner && isAdmin && <button className="btn btn-danger" onClick={deleteAnn}><i className="ti ti-shield-x"></i>Supprimer (admin)</button>}
-            {!isOwner && <button style={{ background:'none',border:'none',color:'var(--text3)',fontSize:12,display:'flex',alignItems:'center',gap:5,cursor:'pointer' }} onClick={() => setShowSignal(true)}><i className="ti ti-flag"></i>Signaler</button>}
           </div>
         </div>
 
         {/* RIGHT */}
         <div style={{ display:'flex',flexDirection:'column',gap:14 }}>
-          {/* VENDEUR */}
-          <div style={{ background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:10,padding:18,position:'relative',overflow:'hidden' }}>
+          {/* VENDEUR — Modèle B */}
+          <div style={{ background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:12,padding:18,position:'relative',overflow:'hidden' }}>
             <div style={{ position:'absolute',top:0,left:0,right:0,height:2,background:'linear-gradient(90deg,var(--g),transparent)' }}></div>
-            <div style={{ display:'flex',alignItems:'center',gap:13,marginBottom:16 }}>
-              <div style={{ width:50,height:50,borderRadius:9,background:'var(--gs)',border:'2px solid var(--gg)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,fontWeight:700,color:'var(--g)',fontFamily:'var(--fh)' }}>
-                {ann.profiles?.username?.slice(0,2).toUpperCase()||'??'}
+            <div style={{ display:'flex',alignItems:'center',gap:12 }}>
+              <div style={{ width:54,height:54,borderRadius:'50%',border:'2px solid var(--g)',overflow:'hidden',background:'var(--gs)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,fontWeight:700,color:'var(--g)',fontFamily:'var(--fh)',flexShrink:0 }}>
+                {ann.profiles?.avatar_url
+                  ? <img src={ann.profiles.avatar_url} alt={ann.profiles?.username} style={{ width:'100%',height:'100%',objectFit:'cover' }} />
+                  : (ann.profiles?.username?.slice(0,2).toUpperCase()||'??')}
               </div>
-              <div style={{ flex:1 }}>
-                <div style={{ fontFamily:'var(--fh)',fontSize:17,fontWeight:700,marginBottom:2,color:'var(--text)' }}>{ann.profiles?.username}</div>
-                <div style={{ fontSize:11,color:'var(--text3)' }}>Membre depuis {memberYear}</div>
-                {ann.profiles?.note_moyenne > 0 && (
-                  <div style={{ color:'var(--amber)',fontSize:13,marginTop:2 }}>
-                    {'★'.repeat(Math.round(ann.profiles.note_moyenne))}
-                    <span style={{ color:'var(--text3)',fontSize:11,marginLeft:5 }}>{Number(ann.profiles.note_moyenne).toFixed(1)}/5</span>
-                  </div>
-                )}
+              <div style={{ flex:1,minWidth:0 }}>
+                <div style={{ fontFamily:'var(--fh)',fontSize:18,fontWeight:700,color:'var(--text)' }}>{ann.profiles?.username}</div>
+                <div style={{ fontSize:11,color:'var(--text3)',display:'flex',alignItems:'center',gap:4,marginTop:2 }}><i className="ti ti-calendar" style={{fontSize:12}}></i> Membre depuis {memberYear}</div>
               </div>
             </div>
-            <div style={{ marginBottom:14 }}>
-              {[
-                {l:'Ventes',v:ann.profiles?.nb_ventes||0,max:50,d:`${ann.profiles?.nb_ventes||0}`},
-                {l:'Expédition',v:ann.profiles?.taux_expedition||100,max:100,d:`${ann.profiles?.taux_expedition||100}%`}
-              ].map((r,i) => (
-                <div key={i} className="rep-row">
-                  <span style={{ color:'var(--text3)',flex:1 }}>{r.l}</span>
-                  <div className="rep-bar"><div className="rep-fill" style={{ width:`${Math.min((r.v/r.max)*100,100)}%` }}></div></div>
-                  <span style={{ fontSize:12,fontWeight:600,minWidth:32,textAlign:'right',color:'var(--text)' }}>{r.d}</span>
+            <div style={{ background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:9,padding:'10px',textAlign:'center',marginTop:12 }}>
+              {ann.profiles?.note_moyenne > 0 ? (
+                <>
+                  <div style={{ color:'var(--amber)',fontSize:16,letterSpacing:1 }}>{'★'.repeat(Math.round(ann.profiles.note_moyenne))}{'☆'.repeat(5-Math.round(ann.profiles.note_moyenne))}</div>
+                  <div style={{ fontSize:13,marginTop:2 }}><b>{Number(ann.profiles.note_moyenne).toFixed(1)}</b> <span style={{ color:'var(--text3)' }}>· {sellerAvis} avis{sellerPct!=null?` · ${sellerPct}% positifs`:''}</span></div>
+                </>
+              ) : <div style={{ color:'var(--text3)',fontSize:13 }}>Nouveau vendeur · pas encore d'avis</div>}
+            </div>
+            <div style={{ display:'flex',gap:8,marginTop:10 }}>
+              {[{v:ann.profiles?.nb_ventes||0,l:'Ventes'},{v:sellerAvis,l:'Avis'}].map((s,i)=>(
+                <div key={i} style={{ flex:1,background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:8,padding:'9px',textAlign:'center' }}>
+                  <div style={{ fontFamily:'var(--fh)',fontSize:18,fontWeight:800,color:'var(--g)',lineHeight:1 }}>{s.v}</div>
+                  <div style={{ fontSize:10,color:'var(--text3)',marginTop:2 }}>{s.l}</div>
                 </div>
               ))}
             </div>
-            <button className="btn btn-out" style={{ width:'100%',justifyContent:'center',padding:9,fontSize:12 }} onClick={() => navigate(`/profil/${ann.user_id}`)}>
+            <div style={{ display:'flex',alignItems:'center',gap:10,background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:8,padding:'10px 12px',marginTop:10 }}>
+              <i className="ti ti-shield-check" style={{ fontSize:22,color:'#A3E635',flexShrink:0 }}></i>
+              <div style={{ fontFamily:'var(--fh)',fontSize:13,fontWeight:800,textTransform:'uppercase',letterSpacing:'.5px',color:'#A3E635' }}>Vendeur confirmé</div>
+            </div>
+            <button className="btn btn-out" style={{ width:'100%',justifyContent:'center',padding:10,fontSize:12,marginTop:12 }} onClick={() => navigate(`/profil/${ann.user_id}`)}>
               Voir le profil complet
             </button>
           </div>

@@ -13,6 +13,7 @@ export default function Messagerie() {
   const [showRating, setShowRating] = useState(false)
   const [rating, setRating] = useState({ note: 5, commentaire: '', categorie: '' })
   const [ratingErr, setRatingErr] = useState('')
+  const [confirmSale, setConfirmSale] = useState(false); const [honorChecked, setHonorChecked] = useState(false)
   useEffect(() => { if (!user) { setShowAuth(true); navigate('/') } }, [user])
   useEffect(() => { if (user) loadConvs() }, [user])
   useEffect(() => { if (active) loadMsgs(active) }, [active])
@@ -57,38 +58,66 @@ export default function Messagerie() {
     setShowRating(false)
   }
   const loadConvs = async () => {
-    const { data } = await supabase.from('messages').select('*,annonce:annonce_id(titre),sender:sender_id(username),receiver:receiver_id(username)').or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`).order('created_at',{ascending:false})
+    const [{ data }, { data: hidden }] = await Promise.all([
+      supabase.from('messages').select('*').or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`).order('created_at',{ascending:false}),
+      supabase.from('conversations_hidden').select('*').eq('user_id', user.id),
+    ])
+    // Point de suppression par conversation (le plus récent)
+    const hideMap = {}
+    ;(hidden||[]).forEach(h => {
+      const k = `${h.other_id}_${h.annonce_id}`
+      if (!hideMap[k] || new Date(h.hidden_at) > new Date(hideMap[k])) hideMap[k] = h.hidden_at
+    })
     const map = {}
     ;(data||[]).forEach(m => {
       const otherId = m.sender_id===user.id?m.receiver_id:m.sender_id
       const key = `${otherId}_${m.annonce_id}`
-      if (!map[key]) map[key]={...m,otherId,otherName:m.sender_id===user.id?m.receiver?.username:m.sender?.username,unread:0}
+      const h = hideMap[key]
+      const isUnreadToMe = !m.lu && m.receiver_id===user.id
+      // On ignore les messages antérieurs au point de suppression de CE membre,
+      // SAUF un message non lu qui m'est adressé (toujours visible).
+      if (h && !isUnreadToMe && new Date(m.created_at) <= new Date(h)) return
+      if (!map[key]) map[key]={...m,otherId,unread:0}
       if (!m.lu&&m.receiver_id===user.id) map[key].unread++
     })
-    // Masquage par utilisateur : on retire les conversations masquées,
-    // sauf si un message plus récent que le masquage est arrivé.
-    const { data: hidden } = await supabase.from('conversations_hidden').select('*').eq('user_id', user.id)
-    const hideMap = {}
-    ;(hidden||[]).forEach(h => { hideMap[`${h.other_id}_${h.annonce_id}`] = h.hidden_at })
-    const visible = Object.values(map).filter(c => {
-      const h = hideMap[`${c.otherId}_${c.annonce_id}`]
-      return !h || new Date(c.created_at) > new Date(h)
-    })
-    // Avatars des interlocuteurs
+    const visible = Object.values(map)
+    // Pseudos + avatars des interlocuteurs (requête séparée, sans jointure fragile)
     const otherIds = [...new Set(visible.map(c => c.otherId).filter(Boolean))]
+    let profMap = {}
     if (otherIds.length) {
-      const { data: profs } = await supabase.from('profiles').select('id,avatar_url').in('id', otherIds)
-      const avMap = Object.fromEntries((profs || []).map(p => [p.id, p.avatar_url]))
-      visible.forEach(c => { c.avatarUrl = avMap[c.otherId] })
+      const { data: profs } = await supabase.from('profiles').select('id,username,avatar_url').in('id', otherIds)
+      profMap = Object.fromEntries((profs || []).map(p => [p.id, p]))
     }
+    // Titres des annonces concernées
+    const annIds = [...new Set(visible.map(c => c.annonce_id).filter(Boolean))]
+    let annMap = {}
+    if (annIds.length) {
+      const { data: anns } = await supabase.from('annonces').select('id,titre').in('id', annIds)
+      annMap = Object.fromEntries((anns || []).map(a => [a.id, a]))
+    }
+    visible.forEach(c => {
+      const p = profMap[c.otherId]
+      c.otherName = p?.username || 'Membre'
+      c.avatarUrl = p?.avatar_url
+      c.annonce = c.annonce_id ? annMap[c.annonce_id] : null
+    })
     setConvs(visible); setLoading(false)
   }
   const loadMsgs = async conv => {
-    let q = supabase.from('messages').select('*,sender:sender_id(username)').or(`and(sender_id.eq.${user.id},receiver_id.eq.${conv.otherId}),and(sender_id.eq.${conv.otherId},receiver_id.eq.${user.id})`)
+    // Point de suppression de CE membre pour cette conversation
+    let hq = supabase.from('conversations_hidden').select('hidden_at').eq('user_id', user.id).eq('other_id', conv.otherId)
+    hq = conv.annonce_id == null ? hq.is('annonce_id', null) : hq.eq('annonce_id', conv.annonce_id)
+    const { data: hid } = await hq.order('hidden_at',{ascending:false}).limit(1)
+    const since = hid && hid[0] ? hid[0].hidden_at : null
+    let q = supabase.from('messages').select('*').or(`and(sender_id.eq.${user.id},receiver_id.eq.${conv.otherId}),and(sender_id.eq.${conv.otherId},receiver_id.eq.${user.id})`)
     q = conv.annonce_id == null ? q.is('annonce_id', null) : q.eq('annonce_id', conv.annonce_id)
+    if (since) q = q.gt('created_at', since)
     const { data } = await q.order('created_at',{ascending:true})
     setMsgs(data||[])
-    await supabase.from('messages').update({lu:true}).eq('receiver_id',user.id).eq('annonce_id',conv.annonce_id)
+    let rq = supabase.from('messages').update({lu:true}).eq('receiver_id',user.id).eq('sender_id',conv.otherId)
+    rq = conv.annonce_id == null ? rq.is('annonce_id', null) : rq.eq('annonce_id', conv.annonce_id)
+    await rq
+    window.dispatchEvent(new Event('as-refresh-unread'))
   }
   const send = async () => {
     if (!txt.trim()||!active) return
@@ -96,19 +125,28 @@ export default function Messagerie() {
     setTxt(''); loadMsgs(active); loadConvs()
   }
   const deleteConv = async (conv) => {
-    if (!window.confirm('Supprimer cette conversation de votre messagerie ?')) return
+    if (!window.confirm("Supprimer cette conversation de votre messagerie ? Elle restera visible pour l'autre membre.")) return
+    // On masque jusqu'à la date du dernier message (heure SERVEUR, pas navigateur),
+    // pour éviter tout décalage d'horloge qui masquerait les futurs messages.
+    const cutoff = conv.created_at || new Date().toISOString()
     await supabase.from('conversations_hidden').upsert(
-      { user_id: user.id, other_id: conv.otherId, annonce_id: conv.annonce_id, hidden_at: new Date().toISOString() },
+      { user_id: user.id, other_id: conv.otherId, annonce_id: conv.annonce_id, hidden_at: cutoff },
       { onConflict: 'user_id,other_id,annonce_id' }
     )
+    // Marquer mes messages reçus comme lus (pour vider la pastille)
+    let rq = supabase.from('messages').update({ lu: true }).eq('receiver_id', user.id).eq('sender_id', conv.otherId)
+    rq = conv.annonce_id == null ? rq.is('annonce_id', null) : rq.eq('annonce_id', conv.annonce_id)
+    await rq
     setConvs(prev => prev.filter(c => !(c.otherId===conv.otherId && c.annonce_id===conv.annonce_id)))
     if (active && active.otherId===conv.otherId && active.annonce_id===conv.annonce_id) { setActive(null); setMsgs([]) }
     showToast('ok','Conversation supprimée.')
+    window.dispatchEvent(new Event('as-refresh-unread'))
+    loadConvs()
   }
   if (!user) return null
   if (loading) return <div className="loader"><div className="spin"></div></div>
   return (
-    <div className="section" style={{maxWidth:960,margin:'0 auto'}}>
+    <div className="section" style={{maxWidth:1100,margin:'0 auto'}}>
       {showRating && active && (
         <div onClick={()=>setShowRating(false)} style={{position:'fixed',inset:0,zIndex:1000,background:'rgba(0,0,0,.85)',display:'flex',alignItems:'flex-start',justifyContent:'center',overflowY:'auto',padding:'7vh 16px 48px'}}>
           <div onClick={e=>e.stopPropagation()} style={{background:'#121512',border:'1px solid #2a3320',borderRadius:14,padding:24,width:'100%',maxWidth:380,position:'relative',boxShadow:'0 20px 60px rgba(0,0,0,.6)'}}>
@@ -137,8 +175,22 @@ export default function Messagerie() {
           </div>
         </div>
       )}
-      <h1 style={{fontFamily:'var(--fh)',fontSize:24,fontWeight:700,marginBottom:20,letterSpacing:'-.3px'}}>Messagerie</h1>
-      <div className="msg-layout">
+      {confirmSale && active && txInfo && (
+        <div onClick={()=>setConfirmSale(false)} style={{position:'fixed',inset:0,zIndex:1001,background:'rgba(0,0,0,.85)',display:'flex',alignItems:'flex-start',justifyContent:'center',overflowY:'auto',padding:'10vh 16px 48px'}}>
+          <div onClick={e=>e.stopPropagation()} style={{background:'#121512',border:'1px solid #2a3320',borderRadius:14,padding:24,width:'100%',maxWidth:400,position:'relative',boxShadow:'0 20px 60px rgba(0,0,0,.6)'}}>
+            <div style={{position:'absolute',top:0,left:0,right:0,height:3,background:'linear-gradient(90deg,#7FA040,transparent)',borderRadius:'14px 14px 0 0'}}></div>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:19,fontWeight:800,textTransform:'uppercase',color:'#EAF0E0'}}>Confirmer {txInfo.amSeller ? 'la vente' : "l'achat"}</div>
+            <div style={{fontSize:13,color:'#7d8a6e',marginTop:4,marginBottom:18,lineHeight:1.5}}>Cette confirmation engage votre responsabilité. Une fois validée par les deux membres, une évaluation pourra être laissée.</div>
+            <label style={{display:'flex',gap:11,alignItems:'flex-start',background:'#141614',border:`1px solid ${honorChecked?'#7FA040':'#2a3320'}`,borderRadius:10,padding:'13px 14px',cursor:'pointer',transition:'border-color .15s'}}>
+              <input type="checkbox" checked={honorChecked} onChange={e=>setHonorChecked(e.target.checked)} style={{marginTop:2,width:18,height:18,accentColor:'#7FA040',flexShrink:0,cursor:'pointer'}} />
+              <span style={{fontSize:13,color:'#EAF0E0',lineHeight:1.45}}>Je certifie sur l'honneur avoir réellement {txInfo.amSeller ? 'vendu' : 'acheté'} cet objet à <b>{active.otherName}</b>. Je comprends que les fausses transactions destinées à obtenir des évaluations sont interdites.</span>
+            </label>
+            <button disabled={!honorChecked} onClick={()=>{ setConfirmSale(false); confirmTxMsg() }} style={{width:'100%',padding:13,background:honorChecked?'#7FA040':'#222820',color:honorChecked?'#fff':'#5a6650',border:'none',borderRadius:9,fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:700,textTransform:'uppercase',letterSpacing:'.5px',cursor:honorChecked?'pointer':'not-allowed',marginTop:16}}><i className="ti ti-check"></i> Je confirme {txInfo.amSeller ? 'la vente' : "l'achat"}</button>
+            <button onClick={()=>setConfirmSale(false)} style={{width:'100%',padding:9,background:'transparent',color:'#7d8a6e',border:'none',fontSize:12,cursor:'pointer',marginTop:6}}>Annuler</button>
+          </div>
+        </div>
+      )}
+      <div className={`msg-layout ${active && convAnn ? 'with-tx' : ''}`}>
         <div className="msg-sidebar">
           {convs.length===0
             ? <div style={{padding:24,textAlign:'center',color:'var(--text3)',fontSize:13}}><i className="ti ti-message-off" style={{fontSize:32,display:'block',marginBottom:8}}></i>Aucun message</div>
@@ -170,31 +222,11 @@ export default function Messagerie() {
                   <div style={{fontSize:13,fontWeight:600}}>{active.otherName}</div>
                   <div style={{fontSize:11,color:'var(--g)',display:'flex',alignItems:'center',gap:3}}><i className="ti ti-circle-check" style={{fontSize:12}}></i> Membre vérifié</div>
                 </div>
-                <button className="btn btn-out" style={{fontSize:11,padding:'6px 10px',whiteSpace:'nowrap',color:'var(--amber)',borderColor:'rgba(200,150,42,.4)'}} onClick={openRating} title="Évaluer ce membre"><i className="ti ti-star"></i> Évaluer</button>
                 <button title="Supprimer la conversation" onClick={() => deleteConv(active)}
-                  style={{ background:'none', border:'none', color:'var(--red)', cursor:'pointer', fontSize:16, padding:6, flexShrink:0 }}>
+                  style={{ background:'rgba(217,64,64,.12)', border:'1px solid rgba(217,64,64,.4)', color:'var(--red)', cursor:'pointer', fontSize:19, padding:'6px 9px', borderRadius:8, flexShrink:0, display:'flex', alignItems:'center' }}>
                   <i className="ti ti-trash"></i>
                 </button>
               </div>
-              {convAnn && (
-                <div style={{display:'flex',alignItems:'center',gap:10,padding:'9px 14px',background:'var(--bg3)',borderBottom:'1px solid var(--border)'}}>
-                  <div onClick={() => navigate(`/annonces/${convAnn.id}`)} title="Voir l'annonce"
-                    style={{width:38,height:38,borderRadius:7,overflow:'hidden',background:'var(--bg4)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,cursor:'pointer'}}>
-                    {convAnn.images && convAnn.images.length>0 ? <img src={convAnn.images[0]} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} /> : <i className="ti ti-package" style={{fontSize:18,color:'var(--text3)'}}></i>}
-                  </div>
-                  <div onClick={() => navigate(`/annonces/${convAnn.id}`)} style={{flex:1,minWidth:0,cursor:'pointer'}}>
-                    <div style={{fontSize:13,fontWeight:600,color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{convAnn.titre}</div>
-                    <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:800,color:'var(--g)'}}>{Number(convAnn.prix).toFixed(0)} €</div>
-                  </div>
-                  {txInfo && (() => {
-                    const t = txInfo.tx
-                    const myConfirmed = t && (txInfo.amSeller ? t.seller_confirmed : t.buyer_confirmed)
-                    if (t?.status === 'confirmed') return <span style={{fontSize:12,color:'var(--g)',fontWeight:700,display:'flex',alignItems:'center',gap:4,whiteSpace:'nowrap',flexShrink:0}}><i className="ti ti-circle-check"></i> Vendu</span>
-                    if (myConfirmed) return <span style={{fontSize:11,color:'var(--amber)',display:'flex',alignItems:'center',gap:4,whiteSpace:'nowrap',flexShrink:0}}><i className="ti ti-clock"></i> En attente</span>
-                    return <button className="btn btn-acc" style={{fontSize:12,padding:'8px 12px',whiteSpace:'nowrap',flexShrink:0}} onClick={confirmTxMsg}><i className="ti ti-check"></i> {txInfo.amSeller ? "J'ai vendu" : "J'ai acheté"}</button>
-                  })()}
-                </div>
-              )}
               <div className="bubbles">
                 {msgs.map(m=>(
                   <div key={m.id} style={{display:'flex',justifyContent:m.sender_id===user.id?'flex-end':'flex-start'}}>
@@ -213,6 +245,58 @@ export default function Messagerie() {
             </>
           }
         </div>
+        {active && convAnn && (() => {
+          const t = txInfo?.tx
+          const myConfirmed = t && (txInfo.amSeller ? t.seller_confirmed : t.buyer_confirmed)
+          const otherConfirmed = t && (txInfo.amSeller ? t.buyer_confirmed : t.seller_confirmed)
+          const done = t?.status === 'confirmed'
+          const s1 = done ? 'done' : (myConfirmed ? 'done' : 'active')
+          const s2 = done ? 'done' : (myConfirmed ? 'active' : 'todo')
+          const s3 = done ? 'active' : 'todo'
+          const col = st => st==='done'?'var(--g)':(st==='active'?'#A3E635':'#3a4a2a')
+          const txtCol = st => st==='todo'?'var(--text3)':'var(--text)'
+          const Step = ({n,label,st}) => (
+            <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
+              <div style={{width:26,height:26,borderRadius:'50%',border:`2px solid ${col(st)}`,color:col(st),display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:800,flexShrink:0}}>{st==='done'?'✓':n}</div>
+              <div style={{fontSize:12,color:txtCol(st),lineHeight:1.3}}>{label}</div>
+            </div>
+          )
+          return (
+            <div className="msg-tx-panel">
+              <div style={{fontFamily:'var(--fh)',fontWeight:800,textTransform:'uppercase',letterSpacing:'1px',fontSize:13,color:'#A3E635',marginBottom:10}}>La transaction</div>
+              <div onClick={() => navigate(`/annonces/${convAnn.id}`)} style={{display:'flex',alignItems:'center',gap:9,background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:8,padding:9,marginBottom:16,cursor:'pointer'}}>
+                <div style={{width:36,height:36,borderRadius:7,overflow:'hidden',background:'var(--bg4)',border:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                  {convAnn.images && convAnn.images.length>0 ? <img src={convAnn.images[0]} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} /> : <i className="ti ti-package" style={{fontSize:16,color:'var(--text3)'}}></i>}
+                </div>
+                <div style={{minWidth:0}}>
+                  <div style={{fontSize:12,fontWeight:600,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{convAnn.titre}</div>
+                  <div style={{fontFamily:'var(--fh)',fontSize:14,fontWeight:800,color:'var(--g)'}}>{Number(convAnn.prix).toFixed(0)} €</div>
+                </div>
+              </div>
+              <Step n={1} st={s1} label={txInfo?.amSeller ? 'Vous confirmez la vente' : "Vous confirmez l'achat"} />
+              <Step n={2} st={s2} label={txInfo?.amSeller ? "L'acheteur confirme" : 'Le vendeur confirme'} />
+              <Step n={3} st={s3} label={<span>★ Évaluation débloquée</span>} />
+              {!txInfo ? (
+                <div style={{fontSize:11,color:'var(--text3)',lineHeight:1.5,marginTop:4}}>Le système de vente s'activera ici une fois la conversation liée à l'annonce.</div>
+              ) : done ? (
+                <>
+                  <button onClick={openRating} style={{width:'100%',padding:13,background:'rgba(200,150,42,.15)',border:'1px solid rgba(200,150,42,.5)',color:'var(--amber)',borderRadius:9,fontFamily:'var(--fh)',fontWeight:800,textTransform:'uppercase',letterSpacing:'1px',fontSize:13,cursor:'pointer',marginTop:6}}><i className="ti ti-star" style={{fontSize:16}}></i> Évaluer ce membre</button>
+                  <div style={{fontSize:11,color:'var(--g)',lineHeight:1.5,marginTop:8,display:'flex',gap:6}}><i className="ti ti-circle-check" style={{flexShrink:0,marginTop:1}}></i> Vente confirmée par les deux membres. Vous pouvez laisser votre avis.</div>
+                </>
+              ) : myConfirmed ? (
+                <>
+                  <div style={{display:'flex',alignItems:'center',gap:7,background:'rgba(200,150,42,.1)',border:'1px solid rgba(200,150,42,.3)',color:'var(--amber)',borderRadius:8,padding:'11px 12px',fontSize:12,marginTop:6}}><i className="ti ti-clock"></i> En attente de la confirmation de l'autre membre…</div>
+                  <div style={{fontSize:11,color:'var(--text3)',lineHeight:1.5,marginTop:8}}>Dès que {active.otherName} aura confirmé de son côté, le bouton ★ Évaluer apparaîtra ici.</div>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => { setHonorChecked(false); setConfirmSale(true) }} style={{width:'100%',padding:13,background:'var(--g)',color:'#fff',border:'none',borderRadius:9,fontFamily:'var(--fh)',fontWeight:800,textTransform:'uppercase',letterSpacing:'1px',fontSize:13,cursor:'pointer',marginTop:6}}><i className="ti ti-check" style={{fontSize:16}}></i> {txInfo.amSeller ? "J'ai vendu" : "J'ai acheté"}</button>
+                  <div style={{fontSize:11,color:'var(--text3)',lineHeight:1.5,marginTop:8}}>💡 Cliquez quand la vente est conclue. Quand <b>vous et l'autre membre</b> avez confirmé, le bouton ★ Évaluer apparaîtra ici.</div>
+                </>
+              )}
+            </div>
+          )
+        })()}
       </div>
     </div>
   )

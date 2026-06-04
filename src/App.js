@@ -247,6 +247,14 @@ function Navbar({ onAuth }) {
     else setSignalCount(0)
   }, [user, location])
 
+  useEffect(() => {
+    const refresh = () => {
+      if (user) supabase.from('messages').select('id', { count: 'exact', head: true }).eq('receiver_id', user.id).eq('lu', false).then(({ count }) => setUnread(count || 0))
+    }
+    window.addEventListener('as-refresh-unread', refresh)
+    return () => window.removeEventListener('as-refresh-unread', refresh)
+  }, [user])
+
   const toggleTheme = () => {
     const next = !isDark
     setIsDark(next)
