@@ -62,25 +62,16 @@ export default function Messagerie() {
       supabase.from('messages').select('*').or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`).order('created_at',{ascending:false}),
       supabase.from('conversations_hidden').select('*').eq('user_id', user.id),
     ])
-    // Point de suppression par conversation (le plus récent)
-    const hideMap = {}
-    ;(hidden||[]).forEach(h => {
-      const k = `${h.other_id}_${h.annonce_id}`
-      if (!hideMap[k] || new Date(h.hidden_at) > new Date(hideMap[k])) hideMap[k] = h.hidden_at
-    })
+    // Conversations masquées par CE membre (simple présence, sans date)
+    const hideSet = new Set((hidden||[]).map(h => `${h.other_id}_${h.annonce_id}`))
     const map = {}
     ;(data||[]).forEach(m => {
       const otherId = m.sender_id===user.id?m.receiver_id:m.sender_id
       const key = `${otherId}_${m.annonce_id}`
-      const h = hideMap[key]
-      const isUnreadToMe = !m.lu && m.receiver_id===user.id
-      // On ignore les messages antérieurs au point de suppression de CE membre,
-      // SAUF un message non lu qui m'est adressé (toujours visible).
-      if (h && !isUnreadToMe && new Date(m.created_at) <= new Date(h)) return
-      if (!map[key]) map[key]={...m,otherId,unread:0}
-      if (!m.lu&&m.receiver_id===user.id) map[key].unread++
+      if (!map[key]) map[key]={...m,otherId,unread:0} // 1er = le plus récent (tri desc)
+      if (!m.lu && m.receiver_id===user.id) map[key].unread++
     })
-    const visible = Object.values(map)
+    const visible = Object.values(map).filter(c => !hideSet.has(`${c.otherId}_${c.annonce_id}`))
     // Pseudos + avatars des interlocuteurs (requête séparée, sans jointure fragile)
     const otherIds = [...new Set(visible.map(c => c.otherId).filter(Boolean))]
     let profMap = {}
@@ -104,14 +95,8 @@ export default function Messagerie() {
     setConvs(visible); setLoading(false)
   }
   const loadMsgs = async conv => {
-    // Point de suppression de CE membre pour cette conversation
-    let hq = supabase.from('conversations_hidden').select('hidden_at').eq('user_id', user.id).eq('other_id', conv.otherId)
-    hq = conv.annonce_id == null ? hq.is('annonce_id', null) : hq.eq('annonce_id', conv.annonce_id)
-    const { data: hid } = await hq.order('hidden_at',{ascending:false}).limit(1)
-    const since = hid && hid[0] ? hid[0].hidden_at : null
     let q = supabase.from('messages').select('*').or(`and(sender_id.eq.${user.id},receiver_id.eq.${conv.otherId}),and(sender_id.eq.${conv.otherId},receiver_id.eq.${user.id})`)
     q = conv.annonce_id == null ? q.is('annonce_id', null) : q.eq('annonce_id', conv.annonce_id)
-    if (since) q = q.gt('created_at', since)
     const { data } = await q.order('created_at',{ascending:true})
     setMsgs(data||[])
     let rq = supabase.from('messages').update({lu:true}).eq('receiver_id',user.id).eq('sender_id',conv.otherId)
@@ -121,19 +106,18 @@ export default function Messagerie() {
   }
   const send = async () => {
     if (!txt.trim()||!active) return
-    await supabase.from('messages').insert({sender_id:user.id,receiver_id:active.otherId,annonce_id:active.annonce_id,contenu:txt.trim()})
+    const { error } = await supabase.from('messages').insert({sender_id:user.id,receiver_id:active.otherId,annonce_id:active.annonce_id,contenu:txt.trim()})
+    if (error) { showToast('err','Erreur : '+error.message); return }
     setTxt(''); loadMsgs(active); loadConvs()
   }
   const deleteConv = async (conv) => {
     if (!window.confirm("Supprimer cette conversation de votre messagerie ? Elle restera visible pour l'autre membre.")) return
-    // On masque jusqu'à la date du dernier message (heure SERVEUR, pas navigateur),
-    // pour éviter tout décalage d'horloge qui masquerait les futurs messages.
-    const cutoff = conv.created_at || new Date().toISOString()
-    await supabase.from('conversations_hidden').upsert(
-      { user_id: user.id, other_id: conv.otherId, annonce_id: conv.annonce_id, hidden_at: cutoff },
-      { onConflict: 'user_id,other_id,annonce_id' }
-    )
-    // Marquer mes messages reçus comme lus (pour vider la pastille)
+    // On pose un simple drapeau "masqué" (sans date). Il sautera tout seul si un nouveau message arrive.
+    let del = supabase.from('conversations_hidden').delete().eq('user_id', user.id).eq('other_id', conv.otherId)
+    del = conv.annonce_id == null ? del.is('annonce_id', null) : del.eq('annonce_id', conv.annonce_id)
+    await del
+    const { error } = await supabase.from('conversations_hidden').insert({ user_id: user.id, other_id: conv.otherId, annonce_id: conv.annonce_id })
+    if (error) { showToast('err', 'Erreur : ' + error.message); return }
     let rq = supabase.from('messages').update({ lu: true }).eq('receiver_id', user.id).eq('sender_id', conv.otherId)
     rq = conv.annonce_id == null ? rq.is('annonce_id', null) : rq.eq('annonce_id', conv.annonce_id)
     await rq

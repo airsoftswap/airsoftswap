@@ -10,6 +10,7 @@ import Profil from './pages/Profil'
 import Messagerie from './pages/Messagerie'
 import PageLegale from './pages/PageLegale'
 import Admin from './pages/Admin'
+import Guide from './pages/Guide'
 
 export const AppCtx = createContext(null)
 export const useApp = () => useContext(AppCtx)
@@ -234,6 +235,7 @@ function Navbar({ onAuth }) {
   const [search, setSearch] = useState('')
   const [unread, setUnread] = useState(0)
   const [signalCount, setSignalCount] = useState(0)
+  const [onlineCount, setOnlineCount] = useState(0)
   const [isDark, setIsDark] = useState(true)
 
   useEffect(() => {
@@ -255,6 +257,20 @@ function Navbar({ onAuth }) {
     return () => window.removeEventListener('as-refresh-unread', refresh)
   }, [user])
 
+  useEffect(() => {
+    let alive = true
+    const ping = async () => {
+      if (user) { try { await supabase.rpc('touch_last_seen') } catch (e) {} }
+      try {
+        const { data } = await supabase.rpc('count_online')
+        if (alive && typeof data === 'number') setOnlineCount(data)
+      } catch (e) {}
+    }
+    ping()
+    const iv = setInterval(ping, 45000)
+    return () => { alive = false; clearInterval(iv) }
+  }, [user])
+
   const toggleTheme = () => {
     const next = !isDark
     setIsDark(next)
@@ -271,6 +287,11 @@ function Navbar({ onAuth }) {
         <Logo />
         <span className="nav-logo">Airsoft<span>Swap</span></span>
       </Link>
+      {onlineCount > 0 && (
+        <div className="online-pill" title="Membres actifs ces 5 dernières minutes">
+          <span className="online-dot"></span>{onlineCount}<span className="online-txt">&nbsp;en ligne</span>
+        </div>
+      )}
       <div className="nav-search">
         <form onSubmit={go}>
           <i className="ti ti-search"></i>
@@ -279,6 +300,7 @@ function Navbar({ onAuth }) {
       </div>
       <div className="nav-links">
         <button className={`nav-link ${on('/annonces') ? 'on' : ''}`} onClick={() => navigate('/annonces')}>Annonces</button>
+        <button className={`nav-link ${on('/guide') ? 'on' : ''}`} onClick={() => navigate('/guide')}>Guide</button>
         {user && (
           <button className={`nav-link ${on('/messagerie') ? 'on' : ''}`} onClick={() => navigate('/messagerie')}>
             Messages {unread > 0 && <span style={{ background: 'var(--red)', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 10, padding: '1px 5px', marginLeft: 4 }}>{unread}</span>}
@@ -351,7 +373,7 @@ function Footer() {
         </div>
         <div className="footer-col">
           <h4>Aide</h4>
-          <a onClick={() => navigate('/legal/comment-ca-marche')}>Comment ça marche ?</a>
+          <a onClick={() => navigate('/guide')}>Comment ça marche ?</a>
           <a onClick={() => navigate('/legal/securite')}>Sécurité</a>
           <a onClick={() => navigate('/legal/regles')}>Règles</a>
           <a onClick={() => navigate('/legal/contact')}>Contact</a>
@@ -438,6 +460,7 @@ export default function App() {
           <Route path="/profil/:id" element={<Profil />} />
           <Route path="/messagerie" element={<Messagerie />} />
           <Route path="/legal/:slug" element={<PageLegale />} />
+          <Route path="/guide" element={<Guide />} />
                 <Route path="/admin" element={<Admin />} />
         </Routes>
         <Footer />

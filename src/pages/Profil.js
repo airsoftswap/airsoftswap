@@ -150,10 +150,13 @@ export default function Profil() {
                 : profile.username?.slice(0,2).toUpperCase()}
             </div>
             {isMe && (
-              <button onClick={()=>fileAvRef.current?.click()} disabled={uploadingAv} title="Changer la photo"
-                style={{position:'absolute',bottom:2,right:2,width:30,height:30,borderRadius:'50%',background:'var(--g)',border:'2px solid var(--bg2)',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',cursor:uploadingAv?'wait':'pointer'}}>
-                <i className={`ti ${uploadingAv?'ti-loader-2':'ti-camera'}`} style={{fontSize:14}}></i>
-              </button>
+              <>
+                <button onClick={()=>fileAvRef.current?.click()} disabled={uploadingAv} title="Changer la photo"
+                  style={{position:'absolute',bottom:2,right:2,width:30,height:30,borderRadius:'50%',background:'var(--g)',border:'2px solid var(--bg2)',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',cursor:uploadingAv?'wait':'pointer'}}>
+                  <i className={`ti ${uploadingAv?'ti-loader-2':'ti-camera'}`} style={{fontSize:14}}></i>
+                </button>
+                <input ref={fileAvRef} type="file" accept="image/*" onChange={changeAvatar} style={{display:'none'}} />
+              </>
             )}
           </div>
           <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:26,fontWeight:800,color:'var(--text)',textTransform:'uppercase',letterSpacing:'-.3px',lineHeight:1}}>{profile.username}</div>

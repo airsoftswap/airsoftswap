@@ -233,21 +233,29 @@ export default function Home() {
       </div>
 
       {/* STATS */}
-      <div className="stats-bar">
-        {[
-          { val: <CountUp to={stats.mem} />, lab: 'Membres', ic: 'ti-users' },
-          { val: <CountUp to={stats.ann} />, lab: 'Annonces en ligne', ic: 'ti-tag' },
-          { val: <CountUp to={stats.ventes} />, lab: 'Ventes réussies', ic: 'ti-circle-check' },
-          { val: <>100<span className="acc">%</span></>, lab: 'Gratuit', ic: 'ti-gift' },
-        ].map((s, i) => (
-          <div key={i} className="stat">
-            <div className="stat-ico"><i className={`ti ${s.ic}`} style={{ fontSize: 21, color: '#A3E635' }}></i></div>
-            <div>
-              <div className="stat-val">{s.val}</div>
-              <div className="stat-lab">{s.lab}</div>
+      <div className="stats-wrap">
+        <div className="stats-bar">
+          {[
+            { val: <CountUp to={stats.mem} />, lab: 'Membres', sub: 'Rejoignez notre communauté', ic: 'ti-users', bg: '/stats/membres.jpg', pos: 'center 35%' },
+            { val: <CountUp to={stats.ann} />, lab: 'Annonces en ligne', sub: 'Trouvez votre bonheur', ic: 'ti-tag', bg: '/stats/annonces.jpg', pos: 'center 42%' },
+            { val: <CountUp to={stats.ventes} />, lab: 'Ventes réussies', sub: 'Transactions sécurisées', ic: 'ti-circle-check', bg: '/stats/ventes.jpg', pos: 'center 22%' },
+            { val: <>100<span className="acc">%</span></>, lab: 'Gratuit', sub: 'Aucun frais caché', ic: 'ti-gift', bg: '/stats/gratuit.jpg', pos: 'center 40%' },
+          ].map((s, i) => (
+            <div key={i} className="stat">
+              <img className="stat-bg" src={s.bg} alt="" style={{ objectPosition: s.pos }} />
+              <div className="stat-overlay"></div>
+              <div className="stat-content">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <div className="stat-ico"><i className={`ti ${s.ic}`} style={{ fontSize: 22, color: '#A3E635' }}></i></div>
+                  <div className="stat-val">{s.val}</div>
+                </div>
+                <div className="stat-lab">{s.lab}</div>
+                <div className="stat-sub">{s.sub}</div>
+                <div className="stat-line"></div>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
       {/* CATS */}
@@ -264,9 +272,11 @@ export default function Home() {
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.filter = 'brightness(1.12)' }}
               onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.filter = 'none' }}>
               <div className="cat-badge">
-                <img src={CAT_BADGE[cat.slug]} alt={cat.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                <img src={CAT_BADGE[cat.slug]} alt={cat.name} style={{ width: '100%', height: 'auto', display: 'block' }} />
               </div>
-              <div style={{ fontSize: 10, color: 'var(--text3)', textAlign: 'center', marginTop: 2 }}>{catCounts[cat.slug] || 0} annonces</div>
+              <div style={{ textAlign: 'center', marginTop: 6 }}>
+                <span style={{ display: 'inline-block', fontSize: 10, color: 'var(--text2)', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 20, padding: '3px 12px' }}>{catCounts[cat.slug] || 0} annonce{(catCounts[cat.slug] || 0) > 1 ? 's' : ''}</span>
+              </div>
             </div>
           ))}
         </div>
