@@ -21,13 +21,13 @@ export default function Profil() {
   useEffect(() => { load() }, [id, user])
   useEffect(() => {
     if (isMe && favs.length > 0) {
-      supabase.from('annonces').select('*').in('id', favs).then(({ data }) => setFavAnnonces(data || []))
+      supabase.from('annonces').select('*').eq('supprimee', false).in('id', favs).then(({ data }) => setFavAnnonces(data || []))
     } else { setFavAnnonces([]) }
   }, [isMe, favs])
   const load = async () => {
     const [{ data:p },{ data:a },{ data:av },{ data:tx }] = await Promise.all([
       supabase.from('profiles').select('*').eq('id',id).single(),
-      supabase.from('annonces').select('*').eq('user_id',id).order('created_at',{ascending:false}),
+      supabase.from('annonces').select('*').eq('user_id',id).eq('supprimee', false).order('created_at',{ascending:false}),
       supabase.from('avis').select('*,auteur:auteur_id(username)').eq('cible_id',id).order('created_at',{ascending:false}),
       supabase.from('transactions').select('annonce_id,confirmed_at').eq('seller_id',id).eq('status','confirmed').order('confirmed_at',{ascending:false}),
     ])

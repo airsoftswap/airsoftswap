@@ -178,11 +178,11 @@ export default function Home() {
 
   const load = async () => {
     const [{ data: ann }, { count: ac }, { count: mc }, venteRes, { data: sold }] = await Promise.all([
-      supabase.from('annonces').select('*, profiles(id, username, note_moyenne, avatar_url, nb_ventes, created_at)').order('created_at', { ascending: false }).limit(8),
-      supabase.from('annonces').select('*', { count: 'exact', head: true }),
+      supabase.from('annonces').select('*, profiles(id, username, note_moyenne, avatar_url, nb_ventes, created_at)').eq('supprimee', false).order('created_at', { ascending: false }).limit(8),
+      supabase.from('annonces').select('*', { count: 'exact', head: true }).eq('supprimee', false),
       supabase.from('profiles').select('*', { count: 'exact', head: true }),
       supabase.from('profiles').select('nb_ventes'),
-      supabase.from('annonces').select('*, profiles(id, username, note_moyenne, avatar_url, nb_ventes, created_at)').not('sold_at', 'is', null).order('sold_at', { ascending: false }).limit(6),
+      supabase.from('annonces').select('*, profiles(id, username, note_moyenne, avatar_url, nb_ventes, created_at)').eq('supprimee', false).not('sold_at', 'is', null).order('sold_at', { ascending: false }).limit(6),
     ])
     const totalVentes = venteRes.data?.reduce((s, p) => s + (p.nb_ventes || 0), 0) || 0
     setAnnonces(ann || [])
@@ -191,7 +191,7 @@ export default function Home() {
     const cats = ['AEG', 'GBB', 'Sniper', 'Équipement', 'Accessoire', 'Pièces']
     const counts = {}
     await Promise.all(cats.map(async c => {
-      const { count } = await supabase.from('annonces').select('*', { count: 'exact', head: true }).eq('categorie', c)
+      const { count } = await supabase.from('annonces').select('*', { count: 'exact', head: true }).eq('categorie', c).eq('supprimee', false)
       counts[c] = count || 0
     }))
     setCatCounts(counts)

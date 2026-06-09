@@ -27,7 +27,7 @@ export default function Annonces() {
 
   const load = async () => {
     setLoading(true)
-    let q = supabase.from('annonces').select('*, profiles(username, note_moyenne)')
+    let q = supabase.from('annonces').select('*, profiles(username, note_moyenne)').eq('supprimee', false)
     if (search.trim()) q = q.or(`titre.ilike.%${search.trim()}%,description.ilike.%${search.trim()}%`)
     if (cat !== 'Tout') q = q.eq('categorie', cat)
     if (etat !== 'Tout état') q = q.eq('etat', etat)

@@ -27,6 +27,7 @@ export default function AnnonceDetail() {
     const { data } = await supabase.from('annonces')
       .select('*, profiles(id,username,note_moyenne,nb_ventes,created_at,ville,avatar_url)')
       .eq('id', id).single()
+    if (data && data.supprimee) { setAnn(null); setLoading(false); return }
     setAnn(data); setLoading(false)
     if (data?.user_id) {
       const { data: avd } = await supabase.from('avis').select('note').eq('cible_id', data.user_id)
@@ -48,14 +49,9 @@ export default function AnnonceDetail() {
   }
 
   const deleteAnn = async () => {
-    if (!window.confirm('Supprimer cette annonce ?')) return
-    // Delete photos from storage
-    if (ann.images?.length > 0) {
-      const paths = ann.images.map(url => url.split('/annonces-photos/')[1]).filter(Boolean)
-      if (paths.length > 0) await supabase.storage.from('annonces-photos').remove(paths)
-    }
-    const { error } = await supabase.from('annonces').delete().eq('id', id)
-    if (error) { showToast('err', "Suppression impossible (l'annonce est peut-être liée à une vente).") ; return }
+    if (!window.confirm("Supprimer cette annonce ? Elle ne sera plus visible publiquement, mais vos conversations et évaluations liées restent conservées.")) return
+    const { error } = await supabase.from('annonces').update({ supprimee: true }).eq('id', id)
+    if (error) { showToast('err', "Suppression impossible : " + error.message) ; return }
     showToast('ok', 'Annonce supprimée.')
     navigate('/annonces')
   }
