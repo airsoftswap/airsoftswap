@@ -222,6 +222,12 @@ export default function Messagerie() {
                 ))}
                 <div ref={bottomRef}></div>
               </div>
+              {txInfo?.tx?.status === 'confirmed' && (
+                <div style={{margin:'0 10px 6px',padding:'10px 12px',background:'rgba(200,150,42,.12)',border:'1px solid rgba(200,150,42,.35)',borderRadius:8,color:'var(--amber)',fontSize:12,lineHeight:1.4,display:'flex',gap:7,alignItems:'flex-start'}}>
+                  <i className="ti ti-package" style={{flexShrink:0,marginTop:1,fontSize:15}}></i>
+                  <span>Produit reçu ? Pensez à <b>laisser un avis</b> à {active.otherName} — ça aide toute la communauté ! 📦</span>
+                </div>
+              )}
               <div className="msg-inp">
                 <input value={txt} onChange={e=>setTxt(e.target.value)} onKeyDown={e=>e.key==='Enter'&&!e.shiftKey&&send()} placeholder="Votre message..." />
                 <button className="btn btn-acc" style={{padding:'9px 16px'}} onClick={send}><i className="ti ti-send"></i></button>
@@ -266,6 +272,7 @@ export default function Messagerie() {
                 <>
                   <button onClick={openRating} style={{width:'100%',padding:13,background:'rgba(200,150,42,.15)',border:'1px solid rgba(200,150,42,.5)',color:'var(--amber)',borderRadius:9,fontFamily:'var(--fh)',fontWeight:800,textTransform:'uppercase',letterSpacing:'1px',fontSize:13,cursor:'pointer',marginTop:6}}><i className="ti ti-star" style={{fontSize:16}}></i> Évaluer ce membre</button>
                   <div style={{fontSize:11,color:'var(--g)',lineHeight:1.5,marginTop:8,display:'flex',gap:6}}><i className="ti ti-circle-check" style={{flexShrink:0,marginTop:1}}></i> Vente confirmée par les deux membres. Vous pouvez laisser votre avis.</div>
+                  <div style={{fontSize:11,color:'var(--amber)',lineHeight:1.5,marginTop:6,display:'flex',gap:6}}><i className="ti ti-package" style={{flexShrink:0,marginTop:1}}></i> Pensez à évaluer une fois le produit reçu — c'est ce qui construit votre réputation.</div>
                 </>
               ) : myConfirmed ? (
                 <>
