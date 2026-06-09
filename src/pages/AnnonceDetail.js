@@ -111,7 +111,7 @@ export default function AnnonceDetail() {
           {/* PHOTO PRINCIPALE */}
           <div style={{ height: 320, background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:10,overflow:'hidden',marginBottom:10,display:'flex',alignItems:'center',justifyContent:'center',position:'relative' }}>
             {hasPhotos ? (
-              <img src={ann.images[activePhoto]} alt={ann.titre} style={{ width:'100%',height:'100%',objectFit:'cover' }} />
+              <img src={ann.images[activePhoto]} alt={ann.titre} style={{ width:'100%',height:'100%',objectFit:'contain' }} />
             ) : (
               <span style={{ fontSize: 100 }}>{EMOJI[ann.categorie] || '🔫'}</span>
             )}
