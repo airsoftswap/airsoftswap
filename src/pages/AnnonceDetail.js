@@ -20,6 +20,7 @@ export default function AnnonceDetail() {
   const [signalReason, setSignalReason] = useState('Arnaque / Faux produit')
   const [sellerAvis, setSellerAvis] = useState(0)
   const [sellerPct, setSellerPct] = useState(null)
+  const [sellerNote, setSellerNote] = useState(0)
 
   useEffect(() => { load() }, [id, user])
 
@@ -32,6 +33,7 @@ export default function AnnonceDetail() {
     if (data?.user_id) {
       const { data: avd } = await supabase.from('avis').select('note').eq('cible_id', data.user_id)
       setSellerAvis(avd?.length || 0)
+      setSellerNote(avd && avd.length ? avd.reduce((s,a)=>s+(a.note||0),0)/avd.length : 0)
       setSellerPct(avd && avd.length ? Math.round(avd.filter(a=>a.note>=4).length/avd.length*100) : null)
     }
   }
@@ -186,10 +188,10 @@ export default function AnnonceDetail() {
               </div>
             </div>
             <div style={{ background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:9,padding:'10px',textAlign:'center',marginTop:12 }}>
-              {ann.profiles?.note_moyenne > 0 ? (
+              {sellerAvis > 0 ? (
                 <>
-                  <div style={{ color:'var(--amber)',fontSize:16,letterSpacing:1 }}>{'★'.repeat(Math.round(ann.profiles.note_moyenne))}{'☆'.repeat(5-Math.round(ann.profiles.note_moyenne))}</div>
-                  <div style={{ fontSize:13,marginTop:2 }}><b>{Number(ann.profiles.note_moyenne).toFixed(1)}</b> <span style={{ color:'var(--text3)' }}>· {sellerAvis} avis{sellerPct!=null?` · ${sellerPct}% positifs`:''}</span></div>
+                  <div style={{ color:'var(--amber)',fontSize:16,letterSpacing:1 }}>{'★'.repeat(Math.round(sellerNote))}{'☆'.repeat(5-Math.round(sellerNote))}</div>
+                  <div style={{ fontSize:13,marginTop:2 }}><b>{Number(sellerNote).toFixed(1)}</b> <span style={{ color:'var(--text3)' }}>· {sellerAvis} avis{sellerPct!=null?` · ${sellerPct}% positifs`:''}</span></div>
                 </>
               ) : <div style={{ color:'var(--text3)',fontSize:13 }}>Nouveau vendeur · pas encore d'avis</div>}
             </div>
