@@ -28,15 +28,23 @@ export default function Profil() {
     const [{ data:p },{ data:a },{ data:av },{ data:tx }] = await Promise.all([
       supabase.from('profiles').select('*').eq('id',id).single(),
       supabase.from('annonces').select('*').eq('user_id',id).eq('supprimee', false).order('created_at',{ascending:false}),
-      supabase.from('avis').select('*,auteur:auteur_id(username)').eq('cible_id',id).order('created_at',{ascending:false}),
+      supabase.from('avis').select('*').eq('cible_id',id).order('created_at',{ascending:false}),
       supabase.from('transactions').select('annonce_id,confirmed_at').eq('seller_id',id).eq('status','confirmed').order('confirmed_at',{ascending:false}),
     ])
-    setProfile(p); setAnnonces(a||[]); setAvis(av||[]); setVues(p?.vues_mois||0)
+    // Auteurs des avis (requête séparée, sans jointure fragile)
+    let avList = av || []
+    const authorIds = [...new Set(avList.map(v => v.auteur_id).filter(Boolean))]
+    if (authorIds.length) {
+      const { data: authors } = await supabase.from('profiles').select('id,username').in('id', authorIds)
+      const amap = Object.fromEntries((authors||[]).map(pp => [pp.id, pp]))
+      avList = avList.map(v => ({ ...v, auteur: amap[v.auteur_id] || null }))
+    }
+    setProfile(p); setAnnonces(a||[]); setAvis(avList); setVues(p?.vues_mois||0)
     // Activité récente : ventes, dépôts d'annonce, avis reçus
     const acts = []
     ;(tx||[]).forEach(t => acts.push({ type:'vente', date:t.confirmed_at, label:'Vente réalisée' }))
     ;(a||[]).forEach(an => acts.push({ type:'annonce', date:an.created_at, label:'Annonce publiée', detail:an.titre }))
-    ;(av||[]).forEach(v => acts.push({ type:'avis', date:v.created_at, label:'Nouvel avis reçu', detail:`Évaluation ${v.note} étoile${v.note>1?'s':''}` }))
+    ;(avList).forEach(v => acts.push({ type:'avis', date:v.created_at, label:'Nouvel avis reçu', detail:`Évaluation ${v.note} étoile${v.note>1?'s':''}` }))
     acts.sort((x,y)=> new Date(y.date) - new Date(x.date))
     setRecentAct(acts.filter(x=>x.date).slice(0,5))
     setLoading(false)
