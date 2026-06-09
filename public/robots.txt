@@ -5,4 +5,4 @@ Disallow: /messagerie/
 Disallow: /publier/
 Disallow: /admin/
 
-Sitemap: https://www.airsoftswap.fr/sitemap.xml
+Sitemap: https://airsoftswap.fr/sitemap.xml
