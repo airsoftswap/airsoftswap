@@ -364,6 +364,12 @@ function Footer() {
             <Logo />Airsoft<span style={{ color: 'var(--g)' }}>Swap</span>
           </div>
           <p>La marketplace communautaire dédiée à l'airsoft en France. Achetez, vendez et échangez en toute confiance.</p>
+          <div className="footer-social">
+            <a href="https://www.tiktok.com/@airsoftswap" target="_blank" rel="noopener noreferrer" className="tiktok-btn" title="Suivez-nous sur TikTok" aria-label="Suivez-nous sur TikTok">
+              <i className="ti ti-brand-tiktok"></i>
+              <span>Suivez-nous sur TikTok</span>
+            </a>
+          </div>
         </div>
         <div className="footer-col">
           <h4>Navigation</h4>

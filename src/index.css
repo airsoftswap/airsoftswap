@@ -433,3 +433,16 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:40px 60p
   .guide-h1{font-size:32px}
   .guide-row{grid-template-columns:1fr;gap:12px}
 }
+
+/* ============ FOOTER SOCIAL ============ */
+.footer-social{display:flex;gap:10px;margin-top:14px}
+.social-link{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:10px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);cursor:pointer;transition:all .2s;text-decoration:none}
+.social-link i{font-size:20px}
+.social-link:hover{background:var(--g);border-color:var(--g);color:#fff;transform:translateY(-2px)}
+
+/* ============ TIKTOK BUTTON ============ */
+.tiktok-btn{display:inline-flex;align-items:center;gap:10px;padding:11px 18px;border-radius:12px;background:linear-gradient(135deg,#0a0c0a,#151813);border:1px solid var(--g);color:var(--text);font-weight:700;font-size:14px;text-decoration:none;cursor:pointer;transition:all .2s;box-shadow:0 0 16px rgba(127,160,64,.15)}
+.tiktok-btn i{font-size:22px;color:#A3E635}
+.tiktok-btn:hover{background:var(--g);border-color:var(--g);color:#0A0B09;transform:translateY(-2px);box-shadow:0 6px 20px rgba(127,160,64,.35)}
+.tiktok-btn:hover i{color:#0A0B09}
+@media(max-width:768px){.tiktok-btn{width:100%;justify-content:center}}
