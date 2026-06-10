@@ -16,9 +16,26 @@ export default function Profil() {
   const [favAnnonces, setFavAnnonces] = useState([])
   const [recentAct, setRecentAct] = useState([]); const [tempsRep, setTempsRep] = useState(null); const [vues, setVues] = useState(0)
   const [editingBio, setEditingBio] = useState(false); const [bioText, setBioText] = useState(''); const [savingBio, setSavingBio] = useState(false)
+  const [notif, setNotif] = useState({ message: true, sale: true, review: true })
   const fileAvRef = useRef(null)
   const isMe = user?.id === id
   useEffect(() => { load() }, [id, user])
+  useEffect(() => {
+    if (profile && isMe) setNotif({
+      message: profile.notif_message !== false,
+      sale: profile.notif_sale !== false,
+      review: profile.notif_review !== false,
+    })
+  }, [profile, isMe])
+  const toggleNotif = async (key) => {
+    const col = { message: 'notif_message', sale: 'notif_sale', review: 'notif_review' }[key]
+    const next = !notif[key]
+    setNotif(n => ({ ...n, [key]: next }))
+    const { error } = await supabase.from('profiles').update({ [col]: next }).eq('id', user.id)
+    if (error) { setNotif(n => ({ ...n, [key]: !next })); showToast('err', 'Erreur : ' + error.message); return }
+    setProfile(p => ({ ...p, [col]: next }))
+    showToast('ok', 'Préférence enregistrée')
+  }
   useEffect(() => {
     if (isMe && favs.length > 0) {
       supabase.from('annonces').select('*').eq('supprimee', false).in('id', favs).then(({ data }) => setFavAnnonces(data || []))
@@ -264,6 +281,7 @@ export default function Profil() {
         <button className={`tab ${tab==='ann'?'on':''}`} onClick={()=>setTab('ann')}>{isMe?'Mes annonces':'Annonces'} ({annonces.length})</button>
         <button className={`tab ${tab==='avis'?'on':''}`} onClick={()=>setTab('avis')}>Avis ({avis.length})</button>
         {isMe && <button className={`tab ${tab==='fav'?'on':''}`} onClick={()=>setTab('fav')}>Favoris ({favs.length})</button>}
+        {isMe && <button className={`tab ${tab==='reglages'?'on':''}`} onClick={()=>setTab('reglages')}>⚙️ Réglages</button>}
       </div>
       <div className="section">
         {tab==='ann' && (annonces.length===0
@@ -296,6 +314,36 @@ export default function Profil() {
                 <div className="ab"><div className="at">{a.titre}</div><div className="ap">{Number(a.prix).toFixed(2)} €</div><div className="al"><i className="ti ti-map-pin" style={{fontSize:11}}></i>{a.ville}{a.departement?` (${a.departement})`:''}</div></div>
               </div>
             ))}</div>
+        )}
+        {tab==='reglages' && isMe && (
+          <div style={{maxWidth:640,margin:'0 auto'}}>
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:800,textTransform:'uppercase',letterSpacing:'.5px',color:'var(--text)',marginBottom:6,display:'flex',alignItems:'center',gap:8}}>
+              <i className="ti ti-bell" style={{color:'var(--g)'}}></i> Notifications par email
+            </div>
+            <div style={{fontSize:13,color:'var(--text3)',marginBottom:18}}>Choisis les emails que tu souhaites recevoir d'AirsoftSwap.</div>
+            {[
+              { key:'message', ic:'ti-message', t:'Nouveau message', d:'Quand un membre te contacte au sujet d\'une annonce.' },
+              { key:'sale', ic:'ti-shopping-cart', t:'Vente / achat confirmé', d:'Quand une transaction est confirmée par les deux parties.' },
+              { key:'review', ic:'ti-star', t:'Rappel d\'évaluation', d:'Un rappel 24h après une vente, si tu n\'as pas encore évalué.' },
+            ].map(row => (
+              <div key={row.key} style={{display:'flex',alignItems:'center',gap:14,background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:10,padding:'14px 18px',marginBottom:10}}>
+                <i className={`ti ${row.ic}`} style={{fontSize:24,color:'var(--g)',flexShrink:0}}></i>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:14,fontWeight:700,color:'var(--text)'}}>{row.t}</div>
+                  <div style={{fontSize:12,color:'var(--text3)',marginTop:2}}>{row.d}</div>
+                </div>
+                <button onClick={()=>toggleNotif(row.key)}
+                  aria-label={`Activer/désactiver ${row.t}`}
+                  style={{position:'relative',width:48,height:27,borderRadius:14,border:'none',cursor:'pointer',flexShrink:0,background:notif[row.key]?'var(--g)':'var(--border2)',transition:'background .2s'}}>
+                  <span style={{position:'absolute',top:3,left:notif[row.key]?24:3,width:21,height:21,borderRadius:'50%',background:'#fff',transition:'left .2s',boxShadow:'0 1px 3px rgba(0,0,0,.4)'}}></span>
+                </button>
+              </div>
+            ))}
+            <div style={{fontSize:12,color:'var(--text3)',marginTop:8,display:'flex',gap:7,alignItems:'flex-start'}}>
+              <i className="ti ti-info-circle" style={{marginTop:2}}></i>
+              <span>Les emails de sécurité du compte (confirmation, réinitialisation de mot de passe) sont toujours envoyés.</span>
+            </div>
+          </div>
         )}
       </div>
     </div>
