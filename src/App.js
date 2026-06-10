@@ -229,7 +229,7 @@ function DonModal() {
 }
 
 function Navbar({ onAuth }) {
-  const { user } = useApp()
+  const { user, profile } = useApp()
   const location = useLocation()
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
@@ -238,13 +238,15 @@ function Navbar({ onAuth }) {
   const [onlineCount, setOnlineCount] = useState(0)
   const [isDark, setIsDark] = useState(true)
 
+  const isStaff = !!user && (user.id === 'e21bb865-90d4-4995-88f5-1b6bf1a324a1' || user.email === 'gamerscss@yahoo.fr' || profile?.role === 'moderator')
+
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', 'dark')
   }, [])
 
   useEffect(() => {
     if (user) supabase.from('messages').select('id', { count: 'exact', head: true }).eq('receiver_id', user.id).eq('lu', false).then(({ count }) => setUnread(count || 0))
-    if (user && (user.id === 'e21bb865-90d4-4995-88f5-1b6bf1a324a1' || user.email === 'gamerscss@yahoo.fr'))
+    if (isStaff)
       supabase.from('signalements').select('id', { count: 'exact', head: true }).neq('status', 'traité').then(({ count }) => setSignalCount(count || 0))
     else setSignalCount(0)
   }, [user, location])
@@ -307,7 +309,7 @@ function Navbar({ onAuth }) {
           </button>
         )}
         {user && <button className={`nav-link ${on('/profil') ? 'on' : ''}`} onClick={() => navigate(`/profil/${user.id}`)}>Mon profil</button>}
-        {user && (user.id === 'e21bb865-90d4-4995-88f5-1b6bf1a324a1' || user.email === 'gamerscss@yahoo.fr') &&
+        {isStaff &&
           <button className={`nav-link ${on('/admin') ? 'on' : ''}`} style={{ color: 'var(--amber)' }} onClick={() => navigate('/admin')}>🛡 Admin{signalCount > 0 && <span style={{ background: 'var(--red)', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 10, padding: '1px 5px', marginLeft: 4 }}>{signalCount}</span>}</button>}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
@@ -343,7 +345,7 @@ function Navbar({ onAuth }) {
             <i className="ti ti-login mn-ico"></i>Connexion
           </div>
       }
-      {user && (user.id === 'e21bb865-90d4-4995-88f5-1b6bf1a324a1' || user.email === 'gamerscss@yahoo.fr') &&
+      {isStaff &&
         <div className={`mn ${on('/admin') ? 'on' : ''}`} onClick={() => navigate('/admin')} style={{ color: 'var(--amber)', position: 'relative' }}>
           <i className="ti ti-shield mn-ico"></i>Admin
           {signalCount > 0 && <span style={{ position: 'absolute', top: -2, right: '50%', marginRight: -20, background: 'var(--red)', color: '#fff', fontSize: 9, fontWeight: 700, borderRadius: 10, padding: '0 4px', minWidth: 14, textAlign: 'center' }}>{signalCount}</span>}
