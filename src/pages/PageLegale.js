@@ -45,10 +45,13 @@ L'éditeur se réserve le droit de supprimer sans préavis toute annonce ou tout
 ## 9. Propriété intellectuelle
 Le Site et son contenu (design, logo, textes) sont protégés par le droit d'auteur. Toute reproduction sans autorisation est interdite. Les annonces restent la propriété de leurs auteurs.
 
-## 10. Droit applicable
+## 10. Liens externes et partenaires
+Le Site peut afficher des bannières ou des liens vers des sites tiers (partenaires, soutiens, pages externes, réseaux sociaux). En cliquant sur ces éléments, l'utilisateur quitte AirsoftSwap. L'éditeur n'exerce aucun contrôle sur ces sites tiers et décline toute responsabilité quant à leur contenu, leurs produits ou services, ainsi que leur politique de confidentialité et de gestion des données. Il appartient à l'utilisateur de consulter les conditions propres à ces sites. La présence d'un lien ou d'une bannière ne constitue ni une garantie, ni une approbation du site tiers concerné par l'éditeur.
+
+## 11. Droit applicable
 Les présentes CGU sont soumises au droit français. Tout litige sera soumis aux tribunaux compétents du ressort de l'éditeur.
 
-## 11. Contact
+## 12. Contact
 airsoftswap@proton.me — Réponse sous 48h ouvrées.`
   },
 
