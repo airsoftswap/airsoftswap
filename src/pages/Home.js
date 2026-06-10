@@ -346,16 +346,16 @@ export default function Home() {
             </div>
           ))}
         </div>
-        <div className="trust-box">
+        <div className="trust-box" style={{display:'flex',flexWrap:'wrap',justifyContent:'center',alignItems:'center',gap:'10px 26px',marginTop:20,paddingTop:18,borderTop:'1px solid var(--border)'}}>
           {[
             ['Email vérifié', 'obligatoire pour publier'],
             ['Avis authentiques', 'après transaction confirmée'],
             ['Signalement', 'en 1 clic — traité sous 24h'],
             ['RGPD', 'données protégées'],
           ].map(([t, s], i) => (
-            <div key={i} className="trust-item">
-              <div className="trust-ico"><i className="ti ti-check"></i></div>
-              <div className="trust-txt"><strong>{t}</strong> {s}</div>
+            <div key={i} className="trust-item" style={{display:'inline-flex',alignItems:'center',gap:7,margin:0}}>
+              <div className="trust-ico" style={{flexShrink:0,display:'inline-flex'}}><i className="ti ti-check" style={{color:'#A3E635'}}></i></div>
+              <div className="trust-txt" style={{fontSize:13,color:'var(--text3)',whiteSpace:'nowrap'}}><strong style={{color:'var(--text2)'}}>{t}</strong> {s}</div>
             </div>
           ))}
         </div>
