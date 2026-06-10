@@ -463,6 +463,7 @@ export default function App() {
           <Route path="/annonces" element={<Annonces />} />
           <Route path="/annonces/:id" element={<AnnonceDetail />} />
           <Route path="/publier" element={<Publier />} />
+          <Route path="/publier/:id" element={<Publier />} />
           <Route path="/profil/:id" element={<Profil />} />
           <Route path="/messagerie" element={<Messagerie />} />
           <Route path="/legal/:slug" element={<PageLegale />} />
