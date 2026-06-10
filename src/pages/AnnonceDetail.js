@@ -17,12 +17,44 @@ export default function AnnonceDetail() {
   const [sending, setSending] = useState(false)
   const [showSignal, setShowSignal] = useState(false)
   const [activePhoto, setActivePhoto] = useState(0)
+  const [hoverZoom, setHoverZoom] = useState(false)
+  const [origin, setOrigin] = useState({ x: 50, y: 50 })
+  const [lightbox, setLightbox] = useState(false)
+  const [lbZoom, setLbZoom] = useState(false)
+  const [lbOrigin, setLbOrigin] = useState({ x: 50, y: 50 })
   const [signalReason, setSignalReason] = useState('Arnaque / Faux produit')
   const [sellerAvis, setSellerAvis] = useState(0)
   const [sellerPct, setSellerPct] = useState(null)
   const [sellerNote, setSellerNote] = useState(0)
 
   useEffect(() => { load() }, [id, user])
+
+  // Fermer la visionneuse plein écran avec Échap + bloquer le scroll du fond
+  useEffect(() => {
+    if (!lightbox) return
+    const onKey = (e) => { if (e.key === 'Escape') setLightbox(false) }
+    window.addEventListener('keydown', onKey)
+    document.body.style.overflow = 'hidden'
+    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = '' }
+  }, [lightbox])
+
+  // Reset du zoom quand on change de photo
+  useEffect(() => { setLbZoom(false); setHoverZoom(false) }, [activePhoto])
+
+  const handleMove = (e) => {
+    const r = e.currentTarget.getBoundingClientRect()
+    const x = ((e.clientX - r.left) / r.width) * 100
+    const y = ((e.clientY - r.top) / r.height) * 100
+    setOrigin({ x, y })
+  }
+  const handleLbMove = (e) => {
+    if (!lbZoom) return
+    const t = e.touches ? e.touches[0] : e
+    const r = e.currentTarget.getBoundingClientRect()
+    const x = ((t.clientX - r.left) / r.width) * 100
+    const y = ((t.clientY - r.top) / r.height) * 100
+    setLbOrigin({ x: Math.max(0, Math.min(100, x)), y: Math.max(0, Math.min(100, y)) })
+  }
 
   const load = async () => {
     const { data } = await supabase.from('annonces')
@@ -99,6 +131,58 @@ export default function AnnonceDetail() {
         </div>
       )}
 
+      {/* VISIONNEUSE PLEIN ÉCRAN */}
+      {lightbox && hasPhotos && (
+        <div onClick={() => setLightbox(false)}
+          style={{ position:'fixed',inset:0,zIndex:3000,background:'rgba(0,0,0,.94)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center' }}>
+          {/* Fermer */}
+          <button onClick={(e) => { e.stopPropagation(); setLightbox(false) }}
+            style={{ position:'absolute',top:16,right:16,zIndex:3,width:42,height:42,borderRadius:'50%',background:'rgba(255,255,255,.12)',border:'none',color:'#fff',fontSize:20,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center' }}>
+            <i className="ti ti-x"></i>
+          </button>
+
+          {/* Compteur */}
+          {ann.images.length > 1 && (
+            <div style={{ position:'absolute',top:22,left:'50%',transform:'translateX(-50%)',color:'#fff',fontSize:13,fontWeight:600,background:'rgba(255,255,255,.1)',padding:'4px 12px',borderRadius:20 }}>
+              {activePhoto + 1} / {ann.images.length}
+            </div>
+          )}
+
+          {/* Flèches */}
+          {ann.images.length > 1 && (
+            <>
+              <button onClick={(e) => { e.stopPropagation(); setActivePhoto((activePhoto - 1 + ann.images.length) % ann.images.length) }}
+                style={{ position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',zIndex:3,width:44,height:44,borderRadius:'50%',background:'rgba(255,255,255,.12)',border:'none',color:'#fff',fontSize:22,cursor:'pointer' }}>
+                <i className="ti ti-chevron-left"></i>
+              </button>
+              <button onClick={(e) => { e.stopPropagation(); setActivePhoto((activePhoto + 1) % ann.images.length) }}
+                style={{ position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',zIndex:3,width:44,height:44,borderRadius:'50%',background:'rgba(255,255,255,.12)',border:'none',color:'#fff',fontSize:22,cursor:'pointer' }}>
+                <i className="ti ti-chevron-right"></i>
+              </button>
+            </>
+          )}
+
+          {/* Image zoomable */}
+          <div onClick={(e) => e.stopPropagation()}
+            onMouseMove={handleLbMove} onTouchMove={handleLbMove}
+            style={{ width:'92%',height:'78%',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden' }}>
+            <img src={ann.images[activePhoto]} alt={ann.titre}
+              onClick={() => setLbZoom(z => !z)}
+              style={{
+                maxWidth:'100%',maxHeight:'100%',objectFit:'contain',
+                transform: lbZoom ? 'scale(2.6)' : 'scale(1)',
+                transformOrigin: `${lbOrigin.x}% ${lbOrigin.y}%`,
+                transition: lbZoom ? 'transform .05s linear' : 'transform .2s ease',
+                cursor: lbZoom ? 'zoom-out' : 'zoom-in'
+              }} />
+          </div>
+
+          <div style={{ position:'absolute',bottom:16,color:'rgba(255,255,255,.6)',fontSize:12,pointerEvents:'none' }}>
+            Touchez l'image pour zoomer
+          </div>
+        </div>
+      )}
+
       <button onClick={() => navigate(-1)} style={{ background:'none',border:'none',color:'var(--text3)',fontSize:13,display:'flex',alignItems:'center',gap:6,marginBottom:24,cursor:'pointer' }}>
         <i className="ti ti-arrow-left"></i> Retour
       </button>
@@ -109,17 +193,38 @@ export default function AnnonceDetail() {
           {/* PHOTO PRINCIPALE */}
           <div style={{ height: 320, background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:10,overflow:'hidden',marginBottom:10,display:'flex',alignItems:'center',justifyContent:'center',position:'relative' }}>
             {hasPhotos ? (
-              <img src={ann.images[activePhoto]} alt={ann.titre} style={{ width:'100%',height:'100%',objectFit:'contain' }} />
+              <div
+                onMouseEnter={() => setHoverZoom(true)}
+                onMouseLeave={() => setHoverZoom(false)}
+                onMouseMove={handleMove}
+                onClick={() => { setLbZoom(false); setLightbox(true) }}
+                style={{ width:'100%', height:'100%', cursor:'zoom-in', overflow:'hidden' }}
+                title="Survolez pour zoomer · cliquez pour le plein écran">
+                <img src={ann.images[activePhoto]} alt={ann.titre}
+                  style={{
+                    width:'100%', height:'100%', objectFit:'contain',
+                    transform: hoverZoom ? 'scale(2.4)' : 'scale(1)',
+                    transformOrigin: `${origin.x}% ${origin.y}%`,
+                    transition: hoverZoom ? 'transform .05s linear' : 'transform .2s ease',
+                    pointerEvents: 'none'
+                  }} />
+              </div>
             ) : (
               <span style={{ fontSize: 100 }}>{EMOJI[ann.categorie] || '🔫'}</span>
             )}
+            {/* Indice zoom */}
+            {hasPhotos && !hoverZoom && (
+              <div style={{ position:'absolute',bottom:10,right:10,background:'rgba(0,0,0,.55)',color:'#fff',fontSize:11,fontWeight:600,padding:'5px 9px',borderRadius:7,display:'flex',alignItems:'center',gap:5,pointerEvents:'none' }}>
+                <i className="ti ti-zoom-in"></i> Zoom
+              </div>
+            )}
             {/* FAV btn */}
-            <button className={`fav-btn ${isFav ? 'on' : ''}`} style={{ position:'absolute',top:10,right:10 }} onClick={() => toggleFav(ann.id)}>
+            <button className={`fav-btn ${isFav ? 'on' : ''}`} style={{ position:'absolute',top:10,right:10,zIndex:2 }} onClick={(e) => { e.stopPropagation(); toggleFav(ann.id) }}>
               <i className={`ti ${isFav?'ti-heart-filled':'ti-heart'}`} style={{ fontSize:14,color:isFav?'var(--red)':'var(--text3)' }}></i>
             </button>
             {!isOwner && (
-              <button onClick={() => setShowSignal(true)} title="Signaler cette annonce"
-                style={{ position:'absolute',top:10,left:10,background:'rgba(217,64,64,.15)',border:'1px solid rgba(217,64,64,.5)',color:'var(--red)',fontSize:12,fontWeight:700,padding:'7px 12px',borderRadius:8,cursor:'pointer',display:'flex',alignItems:'center',gap:5 }}>
+              <button onClick={(e) => { e.stopPropagation(); setShowSignal(true) }} title="Signaler cette annonce"
+                style={{ position:'absolute',top:10,left:10,zIndex:2,background:'rgba(217,64,64,.15)',border:'1px solid rgba(217,64,64,.5)',color:'var(--red)',fontSize:12,fontWeight:700,padding:'7px 12px',borderRadius:8,cursor:'pointer',display:'flex',alignItems:'center',gap:5 }}>
                 <i className="ti ti-flag"></i> Signaler
               </button>
             )}
