@@ -122,6 +122,19 @@ export default function Admin() {
     setUsers(prev => prev.map(x => x.id === u.id ? { ...x, role: makeMod ? 'moderator' : 'user' } : x))
   }
 
+  const toggleUnlimited = async (u) => {
+    if (!isSuperAdmin) return
+    const makeUnl = !u.unlimited
+    if (!window.confirm(
+      makeUnl
+        ? `Donner les annonces ILLIMITÉES à « ${u.username} » ?\n\nIl ne sera plus limité à 3 annonces par semaine.`
+        : `Retirer les annonces illimitées à « ${u.username} » ? Il repassera au quota de 3/semaine.`
+    )) return
+    const { error } = await supabase.rpc('set_unlimited', { target_id: u.id, make_unl: makeUnl })
+    if (error) { alert('Erreur : ' + error.message); return }
+    setUsers(prev => prev.map(x => x.id === u.id ? { ...x, unlimited: makeUnl } : x))
+  }
+
   // Tant que le rôle n'est pas confirmé, on n'affiche rien
   if (!isSuperAdmin && !isModerator) return null
 
@@ -289,6 +302,11 @@ export default function Admin() {
                     <span style={{ background: 'rgba(134,173,74,.12)', border: '1px solid var(--gg)', color: 'var(--g)', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, fontFamily: 'var(--fh)', textTransform: 'uppercase' }}>MODO</span>
                   ) : null}
 
+                  {/* Badge ILLIMITÉ */}
+                  {u.id !== ADMIN_ID && u.unlimited && (
+                    <span style={{ background: 'rgba(200,150,42,.12)', border: '1px solid rgba(200,150,42,.4)', color: 'var(--amber)', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, fontFamily: 'var(--fh)', textTransform: 'uppercase' }}>∞ Illimité</span>
+                  )}
+
                   <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                     <button onClick={() => navigate(`/profil/${u.id}`)}
                       style={{ padding: '7px 12px', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12, color: 'var(--text2)', cursor: 'pointer' }}>
@@ -309,6 +327,23 @@ export default function Admin() {
                           textTransform: 'uppercase', letterSpacing: '.5px'
                         }}>
                         {u.role === 'moderator' ? '🛡 Modo ON' : '🛡 Modo OFF'}
+                      </button>
+                    )}
+
+                    {/* Bouton ON/OFF quota illimité — toi seul */}
+                    {u.id !== ADMIN_ID && (
+                      <button onClick={() => toggleUnlimited(u)}
+                        title={u.unlimited ? 'Repasser au quota de 3/semaine' : 'Donner les annonces illimitées'}
+                        style={{
+                          padding: '7px 12px',
+                          background: u.unlimited ? 'var(--amber)' : 'var(--bg3)',
+                          border: `1px solid ${u.unlimited ? 'var(--amber)' : 'var(--border)'}`,
+                          borderRadius: 6, fontSize: 12,
+                          color: u.unlimited ? '#1a1a1a' : 'var(--text2)',
+                          cursor: 'pointer', fontFamily: 'var(--fh)', fontWeight: 700,
+                          textTransform: 'uppercase', letterSpacing: '.5px'
+                        }}>
+                        {u.unlimited ? '∞ Quota ON' : '∞ Quota OFF'}
                       </button>
                     )}
 

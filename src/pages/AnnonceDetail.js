@@ -166,6 +166,7 @@ export default function AnnonceDetail() {
             <p style={{ fontSize:13,color:'var(--text2)',lineHeight:1.8,whiteSpace:'pre-wrap' }}>{ann.description||'Aucune description.'}</p>
           </div>
           <div style={{ display:'flex',gap:10,flexWrap:'wrap' }}>
+            {isOwner && <button className="btn btn-out" onClick={() => navigate(`/publier/${ann.id}`)}><i className="ti ti-edit"></i>Modifier</button>}
             {isOwner && <button className="btn btn-danger" onClick={deleteAnn}><i className="ti ti-trash"></i>Supprimer</button>}
             {!isOwner && isAdmin && <button className="btn btn-danger" onClick={deleteAnn}><i className="ti ti-shield-x"></i>Supprimer (admin)</button>}
           </div>
