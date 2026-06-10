@@ -17,6 +17,9 @@ export default function Profil() {
   const [recentAct, setRecentAct] = useState([]); const [tempsRep, setTempsRep] = useState(null); const [vues, setVues] = useState(0)
   const [editingBio, setEditingBio] = useState(false); const [bioText, setBioText] = useState(''); const [savingBio, setSavingBio] = useState(false)
   const [notif, setNotif] = useState({ message: true, sale: true, review: true })
+  const [pwd, setPwd] = useState({ current: '', next: '', confirm: '' })
+  const [pwdLoading, setPwdLoading] = useState(false)
+  const [pwdErr, setPwdErr] = useState(''); const [pwdOk, setPwdOk] = useState('')
   const fileAvRef = useRef(null)
   const isMe = user?.id === id
   useEffect(() => { load() }, [id, user])
@@ -35,6 +38,24 @@ export default function Profil() {
     if (error) { setNotif(n => ({ ...n, [key]: !next })); showToast('err', 'Erreur : ' + error.message); return }
     setProfile(p => ({ ...p, [col]: next }))
     showToast('ok', 'Préférence enregistrée')
+  }
+  const changePassword = async () => {
+    setPwdErr(''); setPwdOk('')
+    if (!pwd.current || !pwd.next || !pwd.confirm) { setPwdErr('Remplis tous les champs.'); return }
+    if (pwd.next.length < 6) { setPwdErr('Le nouveau mot de passe doit faire au moins 6 caractères.'); return }
+    if (pwd.next !== pwd.confirm) { setPwdErr('Les deux nouveaux mots de passe ne correspondent pas.'); return }
+    if (pwd.next === pwd.current) { setPwdErr('Le nouveau mot de passe doit être différent de l\'ancien.'); return }
+    setPwdLoading(true)
+    // 1) Vérifier l'ancien mot de passe
+    const { error: signErr } = await supabase.auth.signInWithPassword({ email: user.email, password: pwd.current })
+    if (signErr) { setPwdLoading(false); setPwdErr('Mot de passe actuel incorrect.'); return }
+    // 2) Appliquer le nouveau
+    const { error: upErr } = await supabase.auth.updateUser({ password: pwd.next })
+    setPwdLoading(false)
+    if (upErr) { setPwdErr('Erreur : ' + upErr.message); return }
+    setPwd({ current: '', next: '', confirm: '' })
+    setPwdOk('Mot de passe modifié avec succès ✅')
+    showToast('ok', 'Mot de passe modifié !')
   }
   useEffect(() => {
     if (isMe && favs.length > 0) {
@@ -342,6 +363,37 @@ export default function Profil() {
             <div style={{fontSize:12,color:'var(--text3)',marginTop:8,display:'flex',gap:7,alignItems:'flex-start'}}>
               <i className="ti ti-info-circle" style={{marginTop:2}}></i>
               <span>Les emails de sécurité du compte (confirmation, réinitialisation de mot de passe) sont toujours envoyés.</span>
+            </div>
+
+            {/* SÉCURITÉ DU COMPTE */}
+            <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:18,fontWeight:800,textTransform:'uppercase',letterSpacing:'.5px',color:'var(--text)',margin:'28px 0 6px',display:'flex',alignItems:'center',gap:8}}>
+              <i className="ti ti-lock" style={{color:'var(--g)'}}></i> Sécurité du compte
+            </div>
+            <div style={{fontSize:13,color:'var(--text3)',marginBottom:14}}>Modifie ton mot de passe. On te redemande l'actuel par sécurité.</div>
+            <div style={{background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:10,padding:'18px'}}>
+              <div style={{display:'flex',flexDirection:'column',gap:12,maxWidth:380}}>
+                <div>
+                  <label style={{display:'block',fontSize:12,fontWeight:600,color:'var(--text3)',marginBottom:5}}>Mot de passe actuel</label>
+                  <input type="password" autoComplete="current-password" value={pwd.current} onChange={e=>setPwd(p=>({...p,current:e.target.value}))}
+                    style={{width:'100%',background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:8,padding:'10px 13px',fontSize:14,color:'var(--text)',outline:'none'}} />
+                </div>
+                <div>
+                  <label style={{display:'block',fontSize:12,fontWeight:600,color:'var(--text3)',marginBottom:5}}>Nouveau mot de passe</label>
+                  <input type="password" autoComplete="new-password" value={pwd.next} onChange={e=>setPwd(p=>({...p,next:e.target.value}))} placeholder="6 caractères minimum"
+                    style={{width:'100%',background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:8,padding:'10px 13px',fontSize:14,color:'var(--text)',outline:'none'}} />
+                </div>
+                <div>
+                  <label style={{display:'block',fontSize:12,fontWeight:600,color:'var(--text3)',marginBottom:5}}>Confirmer le nouveau mot de passe</label>
+                  <input type="password" autoComplete="new-password" value={pwd.confirm} onChange={e=>setPwd(p=>({...p,confirm:e.target.value}))}
+                    style={{width:'100%',background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:8,padding:'10px 13px',fontSize:14,color:'var(--text)',outline:'none'}} />
+                </div>
+                {pwdErr && <div style={{background:'rgba(217,64,64,.1)',border:'1px solid rgba(217,64,64,.25)',color:'var(--red)',borderRadius:7,padding:'9px 12px',fontSize:13}}>⚠ {pwdErr}</div>}
+                {pwdOk && <div style={{background:'var(--gs)',border:'1px solid var(--gg)',color:'var(--g)',borderRadius:7,padding:'9px 12px',fontSize:13}}>{pwdOk}</div>}
+                <button onClick={changePassword} disabled={pwdLoading}
+                  style={{background:pwdLoading?'var(--border2)':'var(--g)',color:'#fff',border:'none',borderRadius:8,padding:'11px 16px',fontFamily:"'Barlow Condensed',sans-serif",fontSize:14,fontWeight:800,textTransform:'uppercase',letterSpacing:'.5px',cursor:pwdLoading?'wait':'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:7}}>
+                  <i className="ti ti-key"></i> {pwdLoading?'Modification...':'Modifier le mot de passe'}
+                </button>
+              </div>
             </div>
           </div>
         )}
