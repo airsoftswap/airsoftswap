@@ -5,7 +5,7 @@ import { useApp } from '../App'
 
 const ADMIN_ID = 'e21bb865-90d4-4995-88f5-1b6bf1a324a1'
 const ADMIN_EMAIL = 'gamerscss@yahoo.fr'
-const isAdminUser = u => !!u && (u.id === ADMIN_ID || u.email === ADMIN_EMAIL)
+const isSuperAdminUser = u => !!u && (u.id === ADMIN_ID || u.email === ADMIN_EMAIL)
 
 export default function Admin() {
   const navigate = useNavigate()
@@ -17,24 +17,45 @@ export default function Admin() {
   const [stats, setStats] = useState({})
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  // myRole : null = pas encore vérifié, 'super' = toi, 'moderator' = modo, 'denied' = accès refusé
+  const [myRole, setMyRole] = useState(null)
+
+  const isSuperAdmin = myRole === 'super'
+  const isModerator = myRole === 'moderator'
 
   useEffect(() => {
     if (!user) { navigate('/'); return }
-    if (!isAdminUser(user)) { navigate('/'); return }
-    load()
+    checkAccess()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user])
 
-  const load = async () => {
+  const checkAccess = async () => {
+    // Super-admin (toi) : accès direct, pas besoin de la base
+    if (isSuperAdminUser(user)) {
+      setMyRole('super')
+      load(true)
+      return
+    }
+    // Sinon : on regarde le rôle en base
+    const { data } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+    if (data?.role === 'moderator') {
+      setMyRole('moderator')
+      load(false)
+    } else {
+      navigate('/')
+    }
+  }
+
+  // superAdmin : on récupère aussi la liste des membres (toi seul en a besoin)
+  const load = async (superAdmin) => {
     setLoading(true)
-    const [{ data: ann }, { data: usr }, { count: ac }, { count: uc }, { data: sig }] = await Promise.all([
+    const [{ data: ann }, { count: ac }, { data: sig }] = await Promise.all([
       supabase.from('annonces').select('*, profiles(username)').order('created_at', { ascending: false }),
-      supabase.from('profiles').select('*').order('created_at', { ascending: false }),
       supabase.from('annonces').select('*', { count: 'exact', head: true }),
-      supabase.from('profiles').select('*', { count: 'exact', head: true }),
       supabase.from('signalements').select('*').order('created_at', { ascending: false }),
     ])
     setAnnonces(ann || [])
-    setUsers(usr || [])
+
     let sigList = sig || []
     const repIds = [...new Set(sigList.map(s => s.reporter_id).filter(Boolean))]
     if (repIds.length) {
@@ -43,9 +64,22 @@ export default function Admin() {
       sigList = sigList.map(s => ({ ...s, reporter_name: map[s.reporter_id] }))
     }
     setSignalements(sigList)
-    setStats({ ann: ac || 0, users: uc || 0 })
+
+    let uc = 0
+    if (superAdmin) {
+      const [{ data: usr }, { count: uCount }] = await Promise.all([
+        supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }),
+      ])
+      setUsers(usr || [])
+      uc = uCount || 0
+    }
+
+    setStats({ ann: ac || 0, users: uc })
     setLoading(false)
   }
+
+  const reload = () => load(isSuperAdmin)
 
   const resolveSignal = async (id) => {
     await supabase.from('signalements').update({ status: 'traité' }).eq('id', id)
@@ -66,14 +100,30 @@ export default function Admin() {
     setAnnonces(prev => prev.filter(a => a.id !== id))
   }
 
+  // --- Super-admin uniquement ---
   const deleteUser = async (id) => {
+    if (!isSuperAdmin) return
     if (!window.confirm('Supprimer cet utilisateur et toutes ses annonces ?')) return
     await supabase.from('annonces').delete().eq('user_id', id)
     await supabase.from('profiles').delete().eq('id', id)
     setUsers(prev => prev.filter(u => u.id !== id))
   }
 
-  if (!isAdminUser(user)) return null
+  const toggleModerator = async (u) => {
+    if (!isSuperAdmin) return
+    const makeMod = u.role !== 'moderator'
+    if (!window.confirm(
+      makeMod
+        ? `Promouvoir « ${u.username} » modérateur ?\n\nIl pourra supprimer des annonces et gérer les signalements.`
+        : `Retirer le rôle modérateur à « ${u.username} » ?`
+    )) return
+    const { error } = await supabase.rpc('set_moderator', { target_id: u.id, make_mod: makeMod })
+    if (error) { alert('Erreur : ' + error.message); return }
+    setUsers(prev => prev.map(x => x.id === u.id ? { ...x, role: makeMod ? 'moderator' : 'user' } : x))
+  }
+
+  // Tant que le rôle n'est pas confirmé, on n'affiche rien
+  if (!isSuperAdmin && !isModerator) return null
 
   const filteredAnn = annonces.filter(a =>
     a.titre?.toLowerCase().includes(search.toLowerCase()) ||
@@ -85,6 +135,16 @@ export default function Admin() {
     u.username?.toLowerCase().includes(search.toLowerCase())
   )
 
+  // Onglets : les modos ne voient pas "Membres"
+  const tabs = [
+    { id: 'annonces', label: `📋 Annonces (${annonces.length})` },
+    ...(isSuperAdmin ? [{ id: 'membres', label: `👥 Membres (${users.length})` }] : []),
+    { id: 'signalements', label: `🚩 Signalements (${signalements.filter(s => s.status !== 'traité').length})` },
+  ]
+
+  // Sécurité d'affichage : un modo ne peut pas se retrouver sur l'onglet membres
+  const activeTab = (tab === 'membres' && !isSuperAdmin) ? 'annonces' : tab
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       {/* Header */}
@@ -95,11 +155,16 @@ export default function Admin() {
         </div>
         <div style={{ fontSize: 11, color: 'var(--text3)', marginLeft: 4 }}>AirsoftSwap</div>
 
+        {/* Badge rôle */}
+        <span style={{ background: isModerator ? 'rgba(134,173,74,.12)' : 'var(--gs)', border: '1px solid var(--gg)', color: 'var(--g)', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, fontFamily: 'var(--fh)', textTransform: 'uppercase', letterSpacing: '.5px' }}>
+          {isSuperAdmin ? '🛡 Super-admin' : '🛡 Modérateur'}
+        </span>
+
         {/* Stats rapides */}
         <div style={{ display: 'flex', gap: 16, marginLeft: 'auto' }}>
           {[
             { l: 'Annonces', v: stats.ann || 0 },
-            { l: 'Membres', v: stats.users || 0 },
+            ...(isSuperAdmin ? [{ l: 'Membres', v: stats.users || 0 }] : []),
           ].map((s, i) => (
             <div key={i} style={{ textAlign: 'center' }}>
               <div style={{ fontFamily: 'var(--fh)', fontSize: 20, fontWeight: 800, color: 'var(--g)' }}>{s.v}</div>
@@ -108,7 +173,7 @@ export default function Admin() {
           ))}
         </div>
 
-        <button onClick={load} style={{ padding: '7px 14px', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12, color: 'var(--text2)', cursor: 'pointer', fontFamily: 'var(--fh)', textTransform: 'uppercase', letterSpacing: '.5px' }}>
+        <button onClick={reload} style={{ padding: '7px 14px', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12, color: 'var(--text2)', cursor: 'pointer', fontFamily: 'var(--fh)', textTransform: 'uppercase', letterSpacing: '.5px' }}>
           🔄 Actualiser
         </button>
       </div>
@@ -116,13 +181,9 @@ export default function Admin() {
       <div style={{ padding: '24px' }}>
         {/* Tabs */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-          {[
-            { id: 'annonces', label: `📋 Annonces (${annonces.length})` },
-            { id: 'membres', label: `👥 Membres (${users.length})` },
-            { id: 'signalements', label: `🚩 Signalements (${signalements.filter(s => s.status !== 'traité').length})` },
-          ].map(t => (
+          {tabs.map(t => (
             <button key={t.id} onClick={() => { setTab(t.id); setSearch('') }}
-              style={{ padding: '9px 18px', background: tab === t.id ? 'var(--g)' : 'var(--bg2)', color: tab === t.id ? '#fff' : 'var(--text2)', border: `1px solid ${tab === t.id ? 'var(--g)' : 'var(--border)'}`, borderRadius: 8, fontFamily: 'var(--fh)', fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.5px', cursor: 'pointer', transition: 'all .2s' }}>
+              style={{ padding: '9px 18px', background: activeTab === t.id ? 'var(--g)' : 'var(--bg2)', color: activeTab === t.id ? '#fff' : 'var(--text2)', border: `1px solid ${activeTab === t.id ? 'var(--g)' : 'var(--border)'}`, borderRadius: 8, fontFamily: 'var(--fh)', fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.5px', cursor: 'pointer', transition: 'all .2s' }}>
               {t.label}
             </button>
           ))}
@@ -131,7 +192,7 @@ export default function Admin() {
         {/* Search */}
         <div style={{ position: 'relative', marginBottom: 16 }}>
           <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder={tab === 'annonces' ? 'Rechercher par titre, vendeur, ville...' : 'Rechercher par pseudo...'}
+            placeholder={activeTab === 'annonces' ? 'Rechercher par titre, vendeur, ville...' : 'Rechercher par pseudo...'}
             style={{ width: '100%', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 14px 10px 36px', fontSize: 14, color: 'var(--text)', outline: 'none' }} />
           <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text3)' }}>🔍</span>
         </div>
@@ -141,7 +202,7 @@ export default function Admin() {
         ) : (
 
           /* ANNONCES */
-          tab === 'annonces' ? (
+          activeTab === 'annonces' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {filteredAnn.length === 0 && <div style={{ textAlign: 'center', padding: 40, color: 'var(--text3)' }}>Aucune annonce trouvée</div>}
               {filteredAnn.map(a => (
@@ -173,7 +234,7 @@ export default function Admin() {
                 </div>
               ))}
             </div>
-          ) : tab === 'signalements' ? (
+          ) : activeTab === 'signalements' ? (
 
             /* SIGNALEMENTS */
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -203,7 +264,8 @@ export default function Admin() {
             </div>
           ) : (
 
-            /* MEMBRES */
+            /* MEMBRES — super-admin uniquement */
+            isSuperAdmin && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {filteredUsers.length === 0 && <div style={{ textAlign: 'center', padding: 40, color: 'var(--text3)' }}>Aucun membre trouvé</div>}
               {filteredUsers.map(u => (
@@ -219,14 +281,37 @@ export default function Admin() {
                       {u.note_moyenne > 0 && <span>⭐ {Number(u.note_moyenne).toFixed(1)}</span>}
                     </div>
                   </div>
-                  {u.id === ADMIN_ID && (
+
+                  {/* Badge ADMIN / MODO */}
+                  {u.id === ADMIN_ID ? (
                     <span style={{ background: 'var(--gs)', border: '1px solid var(--gg)', color: 'var(--g)', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, fontFamily: 'var(--fh)', textTransform: 'uppercase' }}>ADMIN</span>
-                  )}
+                  ) : u.role === 'moderator' ? (
+                    <span style={{ background: 'rgba(134,173,74,.12)', border: '1px solid var(--gg)', color: 'var(--g)', fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, fontFamily: 'var(--fh)', textTransform: 'uppercase' }}>MODO</span>
+                  ) : null}
+
                   <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                     <button onClick={() => navigate(`/profil/${u.id}`)}
                       style={{ padding: '7px 12px', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12, color: 'var(--text2)', cursor: 'pointer' }}>
                       👁 Profil
                     </button>
+
+                    {/* Bouton ON/OFF modérateur — toi seul, et pas sur ton propre compte */}
+                    {u.id !== ADMIN_ID && (
+                      <button onClick={() => toggleModerator(u)}
+                        title={u.role === 'moderator' ? 'Retirer le rôle modérateur' : 'Promouvoir modérateur'}
+                        style={{
+                          padding: '7px 12px',
+                          background: u.role === 'moderator' ? 'var(--g)' : 'var(--bg3)',
+                          border: `1px solid ${u.role === 'moderator' ? 'var(--g)' : 'var(--border)'}`,
+                          borderRadius: 6, fontSize: 12,
+                          color: u.role === 'moderator' ? '#fff' : 'var(--text2)',
+                          cursor: 'pointer', fontFamily: 'var(--fh)', fontWeight: 700,
+                          textTransform: 'uppercase', letterSpacing: '.5px'
+                        }}>
+                        {u.role === 'moderator' ? '🛡 Modo ON' : '🛡 Modo OFF'}
+                      </button>
+                    )}
+
                     {u.id !== ADMIN_ID && (
                       <button onClick={() => deleteUser(u.id)}
                         style={{ padding: '7px 12px', background: 'rgba(217,64,64,.1)', border: '1px solid rgba(217,64,64,.2)', borderRadius: 6, fontSize: 12, color: 'var(--red)', cursor: 'pointer' }}>
@@ -237,6 +322,7 @@ export default function Admin() {
                 </div>
               ))}
             </div>
+            )
           )
         )}
       </div>
