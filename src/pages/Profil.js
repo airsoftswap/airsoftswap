@@ -165,7 +165,13 @@ export default function Profil() {
           </div>
         </div>
       )}
-      <div style={{background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:14,overflow:'hidden',marginBottom:16}}>
+      <div style={{background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:14,overflow:'hidden',marginBottom:16,position:'relative'}}>
+        {isMe && (
+          <button onClick={()=>setTab('reglages')} title="Réglages"
+            style={{position:'absolute',top:12,right:12,zIndex:5,display:'inline-flex',alignItems:'center',gap:6,background:'rgba(10,11,9,.6)',border:'1px solid var(--border2)',backdropFilter:'blur(4px)',color:'#EAF0E0',fontSize:12,fontWeight:700,padding:'7px 12px',borderRadius:8,cursor:'pointer',fontFamily:"'Barlow Condensed',sans-serif",textTransform:'uppercase',letterSpacing:'.5px'}}>
+            <i className="ti ti-settings" style={{fontSize:15}}></i> Réglages
+          </button>
+        )}
         <div style={{height:140,background:'linear-gradient(rgba(10,11,9,.35), rgba(10,11,9,.75)), url(/hero.jpg)',backgroundSize:'cover',backgroundPosition:'center',borderBottom:'1px solid var(--border)'}}></div>
         <div style={{padding:'0 20px 20px',textAlign:'center'}}>
           <div style={{position:'relative',width:92,height:92,margin:'-46px auto 12px'}}>
@@ -281,7 +287,6 @@ export default function Profil() {
         <button className={`tab ${tab==='ann'?'on':''}`} onClick={()=>setTab('ann')}>{isMe?'Mes annonces':'Annonces'} ({annonces.length})</button>
         <button className={`tab ${tab==='avis'?'on':''}`} onClick={()=>setTab('avis')}>Avis ({avis.length})</button>
         {isMe && <button className={`tab ${tab==='fav'?'on':''}`} onClick={()=>setTab('fav')}>Favoris ({favs.length})</button>}
-        {isMe && <button className={`tab ${tab==='reglages'?'on':''}`} onClick={()=>setTab('reglages')}>⚙️ Réglages</button>}
       </div>
       <div className="section">
         {tab==='ann' && (annonces.length===0
