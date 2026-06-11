@@ -144,6 +144,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [popupUser, setPopupUser] = useState(null)
   const [soldAnn, setSoldAnn] = useState([])
+  const [newMembers, setNewMembers] = useState([])
 
   useEffect(() => { load() }, [])
 
@@ -160,9 +161,24 @@ export default function Home() {
     since: a.profiles?.created_at,
     annonceId: a.id,
   })
+  const mapMember = (p) => ({
+    user: p.username || 'Nouveau membre',
+    action: 'a rejoint AirsoftSwap',
+    sale: false,
+    joined: true,
+    ts: p.created_at,
+    time: timeAgo(p.created_at),
+    avatar: p.avatar_url,
+    note: p.note_moyenne || 0,
+    uid: p.id,
+    nb_ventes: p.nb_ventes || 0,
+    since: p.created_at,
+    annonceId: null,
+  })
   const activity = [
     ...annonces.map(a => mapAct(a, false)),
     ...soldAnn.map(a => mapAct(a, true)),
+    ...newMembers.map(mapMember),
   ].sort((x, y) => new Date(y.ts) - new Date(x.ts)).slice(0, 6)
 
   const openUser = (a) => setPopupUser({
@@ -177,16 +193,18 @@ export default function Home() {
   })
 
   const load = async () => {
-    const [{ data: ann }, { count: ac }, { count: mc }, venteRes, { data: sold }] = await Promise.all([
+    const [{ data: ann }, { count: ac }, { count: mc }, venteRes, { data: sold }, { data: members }] = await Promise.all([
       supabase.from('annonces').select('*, profiles(id, username, note_moyenne, avatar_url, nb_ventes, created_at)').eq('supprimee', false).order('created_at', { ascending: false }).limit(8),
       supabase.from('annonces').select('*', { count: 'exact', head: true }).eq('supprimee', false),
       supabase.from('profiles').select('*', { count: 'exact', head: true }),
       supabase.from('profiles').select('nb_ventes'),
       supabase.from('annonces').select('*, profiles(id, username, note_moyenne, avatar_url, nb_ventes, created_at)').eq('supprimee', false).not('sold_at', 'is', null).order('sold_at', { ascending: false }).limit(6),
+      supabase.from('profiles').select('id, username, avatar_url, created_at, note_moyenne, nb_ventes').order('created_at', { ascending: false }).limit(6),
     ])
     const totalVentes = venteRes.data?.reduce((s, p) => s + (p.nb_ventes || 0), 0) || 0
     setAnnonces(ann || [])
     setSoldAnn(sold || [])
+    setNewMembers(members || [])
     setStats({ ann: ac || 0, mem: mc || 0, ventes: totalVentes })
     const cats = ['AEG', 'GBB', 'Sniper', 'Équipement', 'Accessoire', 'Pièces']
     const counts = {}
@@ -315,7 +333,7 @@ export default function Home() {
                 {a.avatar ? <img src={a.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : a.user.slice(0, 2).toUpperCase()}
               </div>
               <div className="act-text">
-                <i className={`ti ${a.sale ? 'ti-circle-check' : 'ti-tag'}`} style={{ color: a.sale ? '#A3E635' : 'var(--text3)', marginRight: 6 }}></i>
+                <i className={`ti ${a.joined ? 'ti-user-plus' : a.sale ? 'ti-circle-check' : 'ti-tag'}`} style={{ color: a.joined ? '#86AD4A' : a.sale ? '#A3E635' : 'var(--text3)', marginRight: 6 }}></i>
                 <strong style={{ cursor: 'pointer', color: 'var(--g)' }}
                   onClick={() => openUser(a)}>
                   {a.user}
