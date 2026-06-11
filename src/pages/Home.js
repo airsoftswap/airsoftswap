@@ -264,20 +264,18 @@ export default function Home() {
           <div className="sec-title">Catégories populaires</div>
           <div className="sec-more" onClick={() => navigate('/annonces')}>Voir tout <i className="ti ti-chevron-right"></i></div>
         </div>
-        <div className="cats-grid">
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           {CATS.map(cat => (
             <div key={cat.slug}
               onClick={() => navigate(`/annonces?cat=${cat.slug}`)}
-              style={{ cursor: 'pointer', transition: 'transform .2s, filter .2s', textAlign: 'center' }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.filter = 'brightness(1.12)' }}
-              onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.filter = 'none' }}>
-              <div className="cat-badge" style={{ borderRadius: 10 }}>
-                <img src={CAT_BADGE[cat.slug]} alt={cat.name} style={{ width: '100%', height: 'auto', display: 'block' }} />
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 9, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 30, padding: '6px 16px 6px 6px', cursor: 'pointer', transition: 'border-color .2s, transform .15s' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--g)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'none' }}>
+              <div style={{ width: 38, height: 38, borderRadius: '50%', overflow: 'hidden', background: 'var(--bg3)', flexShrink: 0 }}>
+                <img src={CAT_BADGE[cat.slug]} alt={cat.name} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
               </div>
-              <div style={{ textAlign: 'center', marginTop: 6 }}>
-                <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontSize: 17, fontWeight: 800, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '.5px', lineHeight: 1, marginBottom: 4 }}>{cat.label || cat.name}</div>
-                <span style={{ display: 'inline-block', fontSize: 10, color: 'var(--text2)', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 20, padding: '3px 12px' }}>{catCounts[cat.slug] || 0} annonce{(catCounts[cat.slug] || 0) > 1 ? 's' : ''}</span>
-              </div>
+              <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontSize: 15, fontWeight: 800, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '.5px' }}>{cat.label || cat.name}</span>
+              <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600 }}>{catCounts[cat.slug] || 0}</span>
             </div>
           ))}
         </div>
