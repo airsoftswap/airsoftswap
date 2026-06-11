@@ -15,13 +15,13 @@ const CAT_BADGE = {
   'Pièces': '/cat/pieces.jpg',
 }
 const CATS = [
-  { name: 'Tout', slug: 'Tout', emoji: '🎯' },
-  { name: 'AEG', slug: 'AEG', emoji: '🔫' },
-  { name: 'GBB', slug: 'GBB', emoji: '🔫' },
-  { name: 'Sniper', slug: 'Sniper', emoji: '🎯' },
-  { name: 'Équipement', slug: 'Équipement', emoji: '🦺' },
-  { name: 'Accessoires', slug: 'Accessoire', emoji: '🔭' },
-  { name: 'Pièces', slug: 'Pièces', emoji: '⚙️' },
+  { name: 'Tout', slug: 'Tout', label: 'TOUT', emoji: '🎯' },
+  { name: 'AEG', slug: 'AEG', label: 'AEG', emoji: '🔫' },
+  { name: 'GBB', slug: 'GBB', label: 'GBB', emoji: '🔫' },
+  { name: 'Sniper', slug: 'Sniper', label: 'SNIPER', emoji: '🎯' },
+  { name: 'Équipement', slug: 'Équipement', label: 'ÉQUIP.', emoji: '🦺' },
+  { name: 'Accessoires', slug: 'Accessoire', label: 'ACCESS.', emoji: '🔭' },
+  { name: 'Pièces', slug: 'Pièces', label: 'UPGRADES', emoji: '⚙️' },
 ]
 const TICKER = [
   'Max_92 vient de poster une annonce',
@@ -274,7 +274,8 @@ export default function Home() {
               <div className="cat-badge">
                 <img src={CAT_BADGE[cat.slug]} alt={cat.name} style={{ width: '100%', height: 'auto', display: 'block' }} />
               </div>
-              <div style={{ textAlign: 'center', marginTop: 6 }}>
+              <div style={{ textAlign: 'center', marginTop: 8 }}>
+                <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontSize: 17, fontWeight: 800, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '.5px', lineHeight: 1, marginBottom: 6 }}>{cat.label || cat.name}</div>
                 <span style={{ display: 'inline-block', fontSize: 10, color: 'var(--text2)', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 20, padding: '3px 12px' }}>{catCounts[cat.slug] || 0} annonce{(catCounts[cat.slug] || 0) > 1 ? 's' : ''}</span>
               </div>
             </div>
