@@ -268,14 +268,14 @@ export default function Home() {
           {CATS.map(cat => (
             <div key={cat.slug}
               onClick={() => navigate(`/annonces?cat=${cat.slug}`)}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 11, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 40, padding: '8px 22px 8px 8px', cursor: 'pointer', transition: 'border-color .2s, transform .15s' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 13, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 46, padding: '9px 26px 9px 9px', cursor: 'pointer', transition: 'border-color .2s, transform .15s' }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--g)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'none' }}>
-              <div style={{ width: 52, height: 52, borderRadius: '50%', overflow: 'hidden', background: 'var(--bg3)', flexShrink: 0 }}>
+              <div style={{ width: 72, height: 72, borderRadius: '50%', overflow: 'hidden', background: 'var(--bg3)', flexShrink: 0 }}>
                 <img src={CAT_BADGE[cat.slug]} alt={cat.name} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
               </div>
-              <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontSize: 19, fontWeight: 800, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '.5px' }}>{cat.label || cat.name}</span>
-              <span style={{ fontSize: 13, color: 'var(--text3)', fontWeight: 600 }}>{catCounts[cat.slug] || 0}</span>
+              <span style={{ fontFamily: "'Barlow Condensed',sans-serif", fontSize: 22, fontWeight: 800, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '.5px' }}>{cat.label || cat.name}</span>
+              <span style={{ fontSize: 14, color: 'var(--text3)', fontWeight: 600 }}>{catCounts[cat.slug] || 0}</span>
             </div>
           ))}
         </div>
