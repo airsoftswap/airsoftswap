@@ -395,6 +395,10 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:40px 60p
   .hero-h1{font-size:40px}
   .nav{padding:0 14px}
   .nav-links,.btn-ghost{display:none}
+  .nav-pub,.don-btn{display:none}
+  .nav-actions{gap:6px}
+  .nav-search{max-width:none}
+  .nav-search input{font-size:16px}
   .online-pill{font-size:11px;padding:4px 9px;gap:5px}
   .online-txt{display:none}
   .nav-logo{font-size:18px}

@@ -178,7 +178,7 @@ function DonModal() {
 
   return (
     <>
-      <button onClick={() => setOpen(true)}
+      <button onClick={() => setOpen(true)} className="don-btn"
         style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: 'rgba(255,94,94,.1)', border: '1px solid rgba(255,94,94,.25)', borderRadius: 8, fontSize: 12, fontWeight: 700, color: '#FF5E5E', fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: '.5px', textTransform: 'uppercase', transition: 'all .2s', whiteSpace: 'nowrap', cursor: 'pointer' }}>
         Soutenir
       </button>
@@ -314,14 +314,14 @@ function Navbar({ onAuth }) {
         {isStaff &&
           <button className={`nav-link ${on('/admin') ? 'on' : ''}`} style={{ color: 'var(--amber)' }} onClick={() => navigate('/admin')}>🛡 Admin{signalCount > 0 && <span style={{ background: 'var(--red)', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 10, padding: '1px 5px', marginLeft: 4 }}>{signalCount}</span>}</button>}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
+      <div className="nav-actions" style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
         <DonModal />
         <button className="btn-theme" onClick={toggleTheme} title="Changer le thème">
           {isDark ? '🌙' : '☀️'}
         </button>
         {user
-          ? <button className="btn-primary" onClick={() => navigate('/publier')}>+ Publier</button>
-          : <><button className="btn-ghost" onClick={onAuth}>Connexion</button><button className="btn-primary" style={{ marginLeft: 8 }} onClick={onAuth}>Publier</button></>
+          ? <button className="btn-primary nav-pub" onClick={() => navigate('/publier')}>+ Publier</button>
+          : <><button className="btn-ghost" onClick={onAuth}>Connexion</button><button className="btn-primary nav-pub" style={{ marginLeft: 8 }} onClick={onAuth}>Publier</button></>
         }
       </div>
     </nav>
