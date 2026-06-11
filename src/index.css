@@ -397,10 +397,10 @@ footer{background:var(--bg2);border-top:1px solid var(--border);padding:40px 60p
   .nav-links,.btn-ghost{display:none}
   .nav-pub,.don-btn{display:none}
   .nav-actions{gap:6px}
+  .online-pill{display:none}
   .nav-search{max-width:none}
-  .nav-search input{font-size:16px}
-  .online-pill{font-size:11px;padding:4px 9px;gap:5px}
-  .online-txt{display:none}
+  .nav-search input{font-size:16px;padding:12px 14px 12px 40px}
+  .nav-search i{font-size:17px;left:13px}
   .nav-logo{font-size:18px}
   .mobile-nav{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--nav-bg);backdrop-filter:blur(20px);border-top:1px solid var(--border);padding:8px 0 18px;z-index:200}
   .mn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;color:var(--text3);transition:color .15s;font-size:9px;font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.5px;font-weight:700}
