@@ -65,10 +65,13 @@ Contact : airsoftswap@proton.me
 Conformément à l'article 6-III-2 de la LCEN, les coordonnées personnelles de l'éditeur ont été communiquées à l'hébergeur du Site et peuvent être communiquées aux autorités judiciaires compétentes sur requête. Elles ne sont pas rendues publiques afin de préserver la vie privée de l'éditeur, conformément aux dispositions applicables aux personnes physiques éditant un site à titre non professionnel.
 
 ## Hébergement
-OVH SAS
-2 rue Kellermann
-59100 Roubaix, France
-www.ovh.com
+Le Site est hébergé par :
+Netlify, Inc.
+512 2nd Street, Suite 200
+San Francisco, CA 94107, États-Unis
+www.netlify.com
+
+Le nom de domaine airsoftswap.fr est enregistré auprès d'OVH SAS (2 rue Kellermann, 59100 Roubaix, France).
 
 ## Propriété intellectuelle
 L'ensemble des éléments constituant le Site (design, logo, textes, code source) est protégé par le droit d'auteur et reste la propriété exclusive de l'éditeur. Toute reproduction, représentation ou diffusion, totale ou partielle, sans autorisation expresse est interdite et constitue une contrefaçon sanctionnée par le Code de la propriété intellectuelle.
@@ -86,7 +89,7 @@ Le Site est soumis au droit français. Tout litige relatif à son utilisation se
 AirsoftSwap — Contact : airsoftswap@proton.me
 
 ## 2. Données collectées
-Dans le cadre de l'utilisation du Site, les données suivantes peuvent être collectées : adresse email (lors de l'inscription), pseudo choisi librement par l'utilisateur, contenu des annonces publiées, messages échangés entre utilisateurs, adresse IP (collectée automatiquement par l'hébergeur).
+Dans le cadre de l'utilisation du Site, les données suivantes peuvent être collectées : adresse email (lors de l'inscription), pseudo choisi librement par l'utilisateur, contenu des annonces publiées (y compris la ville et le département indiqués par le vendeur), messages échangés entre utilisateurs, adresse IP (collectée automatiquement par l'hébergeur), données de navigation anonymisées de mesure d'audience (uniquement en cas de consentement aux cookies).
 
 Aucune donnée sensible (nom, prénom, adresse postale, numéro de téléphone) n'est obligatoire pour utiliser le Site.
 
@@ -97,7 +100,7 @@ Les données collectées sont utilisées exclusivement pour : la gestion des com
 Les données sont conservées pendant toute la durée d'activité du compte. En cas de suppression du compte, les données personnelles sont effacées dans un délai de 30 jours.
 
 ## 5. Partage des données
-Aucune donnée personnelle n'est vendue, louée ou cédée à des tiers. Les données ne sont transmises qu'aux autorités judiciaires compétentes sur réquisition légale.
+Aucune donnée personnelle n'est vendue ni louée. Vos données sont hébergées et traitées par des prestataires techniques (sous-traitants) agissant pour le compte du Site : Supabase (hébergement de la base de données et authentification), l'hébergeur du Site, Resend (envoi des emails transactionnels) et, sous réserve de votre consentement, Google Analytics (mesure d'audience). Certains de ces prestataires peuvent traiter des données hors Union européenne ; ces transferts sont encadrés par les clauses contractuelles types de la Commission européenne. En dehors de ces sous-traitants, les données ne sont transmises qu'aux autorités judiciaires compétentes sur réquisition légale.
 
 ## 6. Sécurité
 Des mesures techniques et organisationnelles appropriées sont mises en place pour protéger vos données contre tout accès non autorisé, perte ou altération.
@@ -110,7 +113,7 @@ Pour exercer ces droits, contactez-nous à : airsoftswap@proton.me
 En cas de réclamation, vous pouvez saisir la CNIL (Commission Nationale de l'Informatique et des Libertés) : www.cnil.fr
 
 ## 8. Cookies
-Le Site utilise uniquement des cookies techniques nécessaires au bon fonctionnement du service (session utilisateur). Aucun cookie publicitaire ou de tracking n'est utilisé.`
+Le Site utilise des cookies strictement nécessaires à son fonctionnement (session utilisateur, authentification), qui ne requièrent pas de consentement. Il utilise également, **uniquement après recueil de votre consentement**, des cookies de mesure d'audience via Google Analytics, destinés à analyser la fréquentation du Site de façon anonymisée. Vous pouvez accepter ou refuser ces cookies via le bandeau affiché à votre première visite, et modifier votre choix à tout moment. En cas de refus, aucun cookie de mesure d'audience n'est déposé.`
   },
 
   'regles': {
