@@ -271,11 +271,11 @@ export default function Home() {
               style={{ cursor: 'pointer', transition: 'transform .2s, filter .2s', textAlign: 'center' }}
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.filter = 'brightness(1.12)' }}
               onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.filter = 'none' }}>
-              <div className="cat-badge">
+              <div className="cat-badge" style={{ borderRadius: 10 }}>
                 <img src={CAT_BADGE[cat.slug]} alt={cat.name} style={{ width: '100%', height: 'auto', display: 'block' }} />
               </div>
-              <div style={{ textAlign: 'center', marginTop: 8 }}>
-                <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontSize: 17, fontWeight: 800, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '.5px', lineHeight: 1, marginBottom: 6 }}>{cat.label || cat.name}</div>
+              <div style={{ textAlign: 'center', marginTop: 6 }}>
+                <div style={{ fontFamily: "'Barlow Condensed',sans-serif", fontSize: 17, fontWeight: 800, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '.5px', lineHeight: 1, marginBottom: 4 }}>{cat.label || cat.name}</div>
                 <span style={{ display: 'inline-block', fontSize: 10, color: 'var(--text2)', background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 20, padding: '3px 12px' }}>{catCounts[cat.slug] || 0} annonce{(catCounts[cat.slug] || 0) > 1 ? 's' : ''}</span>
               </div>
             </div>
