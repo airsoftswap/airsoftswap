@@ -353,6 +353,7 @@ export default function AnnonceDetail() {
               <li>Privilégiez la remise en main propre</li>
               <li>Vérifiez le profil et les avis du vendeur</li>
               <li>Ne payez jamais par virement à l'avance</li>
+              <li>Privilégiez le paiement par PayPal (protection en cas d'achat frauduleux)</li>
             </ul>
           </div>
         </div>
