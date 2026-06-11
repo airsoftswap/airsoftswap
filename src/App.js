@@ -11,6 +11,8 @@ import Messagerie from './pages/Messagerie'
 import PageLegale from './pages/PageLegale'
 import Admin from './pages/Admin'
 import Guide from './pages/Guide'
+import CookieConsent from './lib/CookieConsent'
+import { initAnalytics } from './lib/analytics'
 
 export const AppCtx = createContext(null)
 export const useApp = () => useContext(AppCtx)
@@ -438,6 +440,9 @@ export default function App() {
     return () => subscription.unsubscribe()
   }, [])
 
+  // Mesure d'audience : recharge GA uniquement si l'utilisateur avait déjà consenti
+  useEffect(() => { initAnalytics() }, [])
+
   const loadProfile = async id => {
     const { data } = await supabase.from('profiles').select('*').eq('id', id).single()
     if (data) setProfile(data)
@@ -473,6 +478,7 @@ export default function App() {
                 <Route path="/admin" element={<Admin />} />
         </Routes>
         <Footer />
+        <CookieConsent />
       </BrowserRouter>
     </AppCtx.Provider>
   )
